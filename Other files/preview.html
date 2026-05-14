@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+  <title>Monthly Expense Planner</title>
+
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-slate-100 min-h-screen text-slate-800">
+
+  <div class="max-w-6xl mx-auto px-4 py-10">
+
+    <!-- HEADER -->
+
+    <div class="mb-8">
+      <h1 class="text-4xl font-bold tracking-tight">
+        Monthly Expense Planner
+      </h1>
+
+      <p class="text-slate-500 mt-2">
+        Track allocated and utilised amounts by category
+      </p>
+    </div>
+
+    <form class="space-y-8">
+
+      <!-- MONTH PICKER -->
+
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+
+        <label
+          for="expense_month"
+          class="block text-sm font-semibold mb-3"
+        >
+          Choose Month
+        </label>
+
+        <input
+          type="month"
+          id="expense_month"
+          name="expense_month"
+          class="border border-slate-300 rounded-xl px-4 py-3 w-64 focus:outline-none focus:ring-2 focus:ring-slate-400"
+        />
+
+      </div>
+
+      <!-- FIXED -->
+
+      <section class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+
+        <h2 class="text-2xl font-bold mb-6">
+          Fixed
+        </h2>
+
+        <div class="grid grid-cols-3 gap-4 mb-4 text-sm font-semibold text-slate-500">
+          <div>Category</div>
+          <div>Allocated (£)</div>
+          <div>Utilised (£)</div>
+        </div>
+
+        <div class="space-y-4">
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+            <div class="font-medium">Mortgage</div>
+
+            <input
+              type="number"
+              step="0.01"
+              class="w-full border border-slate-300 rounded-xl px-4 py-3"
+              placeholder="0.00"
+            />
+
+            <input
+              type="number"
+              step="0.01"
+              class="w-full border border-slate-300 rounded-xl px-4 py-3"
+              placeholder="0.00"
+            />
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+            <div class="font-medium">Professional Fee</div>
+
+            <input
+              type="number"
+              step="0.01"
+              class="w-full border border-slate-300 rounded-xl px-4 py-3"
+              placeholder="0.00"
+            />
+
+            <input
+              type="number"
+              step="0.01"
+              class="w-full border border-slate-300 rounded-xl px-4 py-3"
+              placeholder="0.00"
+            />
+          </div>
+
+        </div>
+
+      </section>
+
+      <!-- MONTHLY -->
+
+      <section class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+
+        <h2 class="text-2xl font-bold mb-6">
+          Monthly
+        </h2>
+
+        <div class="space-y-4">
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+            <div class="font-medium">Bills</div>
+
+            <input
+              type="number"
+              step="0.01"
+              class="border border-slate-300 rounded-xl px-4 py-3"
+              placeholder="Allocated"
+            />
+
+            <input
+              type="number"
+              step="0.01"
+              class="border border-slate-300 rounded-xl px-4 py-3"
+              placeholder="Utilised"
+            />
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+            <div class="font-medium">Discretionary</div>
+
+            <input
+              type="number"
+              step="0.01"
+              class="border border-slate-300 rounded-xl px-4 py-3"
+              placeholder="Allocated"
+            />
+
+            <input
+              type="number"
+              step="0.01"
+              class="border border-slate-300 rounded-xl px-4 py-3"
+              placeholder="Utilised"
+            />
+          </div>
+
+        </div>
+
+      </section>
+
+      <!-- ANNUAL ESSENTIAL -->
+
+      <section class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+
+        <h2 class="text-2xl font-bold mb-6">
+          Annual Essential
+        </h2>
+
+        <div class="space-y-4">
+
+          <!-- Reusable Row -->
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+            <div class="font-medium">Car</div>
+
+            <input type="number" step="0.01"
+              class="border border-slate-300 rounded-xl px-4 py-3"
+              placeholder="Allocated"/>
+
+            <input type="number" step="0.01"
+              class="border border-slate-300 rounded-xl px-4 py-3"
+              placeholder="Utilised"/>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+            <div class="font-medium">Home</div>
+
+            <input type="number" step="0.01"
+              class="border border-slate-300 rounded-xl px-4 py-3"
+              placeholder="Allocated"/>
+
+            <input type="number" step="0.01"
+              class="border border-slate-300 rounded-xl px-4 py-3"
+              placeholder="Utilised"/>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+            <div class="font-medium">Health</div>
+
+            <input type="number" step="0.01"
+              class="border border-slate-300 rounded-xl px-4 py-3"
+              placeholder="Allocated"/>
+
+            <input type="number" step="0.01"
+              class="border border-slate-300 rounded-xl px-4 py-3"
+              placeholder="Utilised"/>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+            <div class="font-medium">Travel</div>
+
+            <input type="number" step="0.01"
+              class="border border-slate-300 rounded-xl px-4 py-3"
+              placeholder="Allocated"/>
+
+            <input type="number" step="0.01"
+              class="border border-slate-300 rounded-xl px-4 py-3"
+              placeholder="Utilised"/>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+            <div class="font-medium">Other</div>
+
+            <input type="number" step="0.01"
+              class="border border-slate-300 rounded-xl px-4 py-3"
+              placeholder="Allocated"/>
+
+            <input type="number" step="0.01"
+              class="border border-slate-300 rounded-xl px-4 py-3"
+              placeholder="Utilised"/>
+          </div>
+
+        </div>
+
+      </section>
+
+      <!-- EXPECTED IRREGULAR -->
+
+      <section class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+
+        <h2 class="text-2xl font-bold mb-6">
+          Expected Irregular
+        </h2>
+
+        <div class="space-y-4">
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+            <div class="font-medium">Car Purchase</div>
+
+            <input type="number" step="0.01"
+              class="border border-slate-300 rounded-xl px-4 py-3"/>
+
+            <input type="number" step="0.01"
+              class="border border-slate-300 rounded-xl px-4 py-3"/>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+            <div class="font-medium">Home Improvement</div>
+
+            <input type="number" step="0.01"
+              class="border border-slate-300 rounded-xl px-4 py-3"/>
+
+            <input type="number" step="0.01"
+              class="border border-slate-300 rounded-xl px-4 py-3"/>
+          </div>
+
+        </div>
+
+      </section>
+
+      <!-- UNKNOWN -->
+
+      <section class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+
+        <h2 class="text-2xl font-bold mb-6">
+          Unknown Unexpected
+        </h2>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+
+          <div class="font-medium">Emergency Fund</div>
+
+          <input type="number" step="0.01"
+            class="border border-slate-300 rounded-xl px-4 py-3"/>
+
+          <input type="number" step="0.01"
+            class="border border-slate-300 rounded-xl px-4 py-3"/>
+
+        </div>
+
+      </section>
+
+      <!-- YOLO -->
+
+      <section class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+
+        <h2 class="text-2xl font-bold mb-6">
+          YOLO
+        </h2>
+
+        <div class="space-y-4">
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+
+            <div class="font-medium">Monthly</div>
+
+            <input type="number" step="0.01"
+              class="border border-slate-300 rounded-xl px-4 py-3"/>
+
+            <input type="number" step="0.01"
+              class="border border-slate-300 rounded-xl px-4 py-3"/>
+
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+
+            <div class="font-medium">Yearly</div>
+
+            <input type="number" step="0.01"
+              class="border border-slate-300 rounded-xl px-4 py-3"/>
+
+            <input type="number" step="0.01"
+              class="border border-slate-300 rounded-xl px-4 py-3"/>
+
+          </div>
+
+        </div>
+
+      </section>
+
+      <!-- SAVE BUTTON -->
+
+      <div class="flex justify-end">
+
+        <button
+          type="submit"
+          class="bg-slate-900 hover:bg-slate-800 text-white font-semibold px-8 py-4 rounded-2xl transition"
+        >
+          Save Budget
+        </button>
+
+      </div>
+
+    </form>
+
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Budget Bucket Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <style>
+    :root {
+      --bg:        #080d14;
+      --surface:   #0d1520;
+      --surface2:  #111d2e;
+      --border:    #1a2840;
+      --border2:   #243450;
+
+      --cat-fixed:    #1e3a5f;
+      --cat-monthly:  #1a3d2e;
+      --cat-annual:   #2d2060;
+      --cat-irreg:    #3d2808;
+      --cat-unknown:  #3b1a1a;
+      --cat-yolo:     #1a3040;
+
+      --cat-fixed-text:   #60a5fa;
+      --cat-monthly-text: #4ade80;
+      --cat-annual-text:  #a78bfa;
+      --cat-irreg-text:   #fb923c;
+      --cat-unknown-text: #f87171;
+      --cat-yolo-text:    #38bdf8;
+
+      --text:      #e2e8f0;
+      --muted:     #475569;
+      --positive:  #22c55e;
+      --negative:  #ef4444;
+      --zero:      #64748b;
+      --accent:    #3b82f6;
+
+      --font-mono: 'DM Mono', monospace;
+      --font-head: 'Syne', sans-serif;
+    }
+
+    body {
+      font-family: var(--font-mono);
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    /* ── CATEGORY COLORS ── */
+    th.cat-fixed   { background: var(--cat-fixed);   color: var(--cat-fixed-text); }
+    th.cat-monthly { background: var(--cat-monthly);  color: var(--cat-monthly-text); }
+    th.cat-annual  { background: var(--cat-annual);   color: var(--cat-annual-text); }
+    th.cat-irreg   { background: var(--cat-irreg);    color: var(--cat-irreg-text); }
+    th.cat-unknown { background: var(--cat-unknown);  color: var(--cat-unknown-text); }
+    th.cat-yolo    { background: var(--cat-yolo);     color: var(--cat-yolo-text); }
+
+    th.sub-fixed   { background: color-mix(in srgb, var(--cat-fixed) 60%, var(--surface2)); }
+    th.sub-monthly { background: color-mix(in srgb, var(--cat-monthly) 60%, var(--surface2)); }
+    th.sub-annual  { background: color-mix(in srgb, var(--cat-annual) 60%, var(--surface2)); }
+    th.sub-irreg   { background: color-mix(in srgb, var(--cat-irreg) 60%, var(--surface2)); }
+    th.sub-unknown { background: color-mix(in srgb, var(--cat-unknown) 60%, var(--surface2)); }
+    th.sub-yolo    { background: color-mix(in srgb, var(--cat-yolo) 60%, var(--surface2)); }
+
+    /* Data cell tints */
+    td.col-fixed   { background: rgba(30, 58, 95, 0.12); }
+    td.col-monthly { background: rgba(26, 61, 46, 0.12); }
+    td.col-annual  { background: rgba(45, 32, 96, 0.12); }
+    td.col-irreg   { background: rgba(61, 40, 8, 0.12); }
+    td.col-unknown { background: rgba(59, 26, 26, 0.12); }
+    td.col-yolo    { background: rgba(26, 48, 64, 0.12); }
+
+    tr:hover td.col-fixed   { background: rgba(30, 58, 95, 0.22); }
+    tr:hover td.col-monthly { background: rgba(26, 61, 46, 0.22); }
+    tr:hover td.col-annual  { background: rgba(45, 32, 96, 0.22); }
+    tr:hover td.col-irreg   { background: rgba(61, 40, 8, 0.22); }
+    tr:hover td.col-unknown { background: rgba(59, 26, 26, 0.22); }
+    tr:hover td.col-yolo    { background: rgba(26, 48, 64, 0.22); }
+
+    .lbl {
+      font-size: 0.62rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 4px;
+      display: block;
+    }
+
+    .display-value {
+      width: 100%;
+      padding: 7px 10px;
+      border-radius: 7px;
+      border: 1px solid var(--border2);
+      background: rgba(255,255,255,0.04);
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      margin-bottom: 6px;
+      display: inline-block;
+      min-height: 32px;
+      line-height: 1.4;
+    }
+
+    .remaining {
+      font-size: 0.78rem;
+      font-weight: 500;
+      padding-top: 2px;
+    }
+
+    .positive { color: var(--positive); }
+    .negative { color: var(--negative); }
+    .zero     { color: var(--zero); }
+
+    td.sum-cell {
+      border-left: 2px solid var(--border2);
+      background: #12121f;
+      min-width: 100px;
+      vertical-align: middle;
+      text-align: center;
+    }
+
+    .sum-value {
+      font-family: var(--font-head);
+      font-size: 1rem;
+      font-weight: 700;
+    }
+
+    .sum-note {
+      font-size: 0.62rem;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    tr.rollover-row td.sum-cell {
+      background: #030d08;
+      border-left: 2px solid #14532d;
+    }
+
+    td.rollover-label {
+      font-family: var(--font-head);
+      font-weight: 800;
+      font-size: 0.82rem;
+      color: #4ade80;
+      white-space: nowrap;
+    }
+
+    /* ── SCROLLBAR ── */
+    .table-wrapper::-webkit-scrollbar { height: 6px; }
+    .table-wrapper::-webkit-scrollbar-track { background: var(--bg); }
+    .table-wrapper::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+  </style>
+</head>
+<body class="min-h-screen p-8 md:p-12">
+
+<div class="max-w-full mx-auto">
+
+  <!-- TOPBAR -->
+  <div class="flex flex-col md:flex-row justify-between items-start mb-8 gap-5">
+    <div>
+      <h1 class="text-3xl md:text-4xl font-black tracking-tight" style="font-family: var(--font-head); color: #f8fafc;">Budget Bucket Tracker</h1>
+      <p class="text-xs text-slate-500 mt-1 tracking-widest">Single-user monthly budget dashboard · 6 categories · 14 buckets · rolling 12 months</p>
+    </div>
+    <div class="flex gap-2.5 items-center flex-wrap">
+      <div class="inline-flex items-center gap-2 px-3.5 py-2 rounded-full border" style="background: var(--surface); border-color: var(--border); font-size: 0.78rem; color: #94a3b8;">
+        <div class="w-1.5 h-1.5 rounded-full" style="background: var(--positive); box-shadow: 0 0 6px var(--positive);"></div>
+        Logged in with Google
+      </div>
+      <button class="px-4 py-2.5 rounded-lg text-xs font-medium transition-all" style="background: var(--surface); color: var(--text); border: 1px solid var(--border2);">Autofill Last Month</button>
+      <button class="px-4 py-2.5 rounded-lg text-xs font-medium transition-all text-white" style="background: var(--accent);">Save Changes</button>
+    </div>
+  </div>
+
+  <!-- LEGEND -->
+  <div class="flex gap-4 mb-4.5 flex-wrap text-xs">
+    <div class="flex items-center gap-1.5">
+      <div class="w-2.5 h-2.5 rounded" style="background: var(--cat-fixed-text);"></div>
+      <span style="color: #94a3b8;">Fixed</span>
+    </div>
+    <div class="flex items-center gap-1.5">
+      <div class="w-2.5 h-2.5 rounded" style="background: var(--cat-monthly-text);"></div>
+      <span style="color: #94a3b8;">Monthly</span>
+    </div>
+    <div class="flex items-center gap-1.5">
+      <div class="w-2.5 h-2.5 rounded" style="background: var(--cat-annual-text);"></div>
+      <span style="color: #94a3b8;">Annual Essentials</span>
+    </div>
+    <div class="flex items-center gap-1.5">
+      <div class="w-2.5 h-2.5 rounded" style="background: var(--cat-irreg-text);"></div>
+      <span style="color: #94a3b8;">Expected Irregulars</span>
+    </div>
+    <div class="flex items-center gap-1.5">
+      <div class="w-2.5 h-2.5 rounded" style="background: var(--cat-unknown-text);"></div>
+      <span style="color: #94a3b8;">Unknown Unexpected</span>
+    </div>
+    <div class="flex items-center gap-1.5">
+      <div class="w-2.5 h-2.5 rounded" style="background: var(--cat-yolo-text);"></div>
+      <span style="color: #94a3b8;">Yolo</span>
+    </div>
+    <div class="flex items-center gap-1.5 ml-auto">
+      <span style="color: var(--muted);">Blank spent = not yet entered</span>
+    </div>
+  </div>
+
+  <!-- TABLE CARD -->
+  <div class="rounded-2xl overflow-hidden" style="background: var(--surface); border: 1px solid var(--border);">
+    <div class="table-wrapper">
+      <table class="w-full border-collapse" style="min-width: 2400px;">
+
+        <!-- ══ CATEGORY HEADER ROW ══ -->
+        <thead class="sticky top-0 z-10">
+          <tr class="cat-row">
+            <th class="px-3.5 py-2.5 text-xs font-bold uppercase tracking-wider whitespace-nowrap" style="background: var(--surface2);"><!-- spacer --></th>
+
+            <!-- Fixed: 2 cols -->
+            <th class="cat-fixed px-3.5 py-2.5 text-xs font-bold uppercase tracking-wider whitespace-nowrap border-b border-opacity-10" colspan="2">Fixed</th>
+
+            <!-- Monthly: 2 cols -->
+            <th class="cat-monthly px-3.5 py-2.5 text-xs font-bold uppercase tracking-wider whitespace-nowrap border-b border-opacity-10" colspan="2">Monthly</th>
+
+            <!-- Annual Essentials: 5 cols -->
+            <th class="cat-annual px-3.5 py-2.5 text-xs font-bold uppercase tracking-wider whitespace-nowrap border-b border-opacity-10" colspan="5">Annual Essentials <span class="font-normal opacity-70">(monthly equiv.)</span></th>
+
+            <!-- Expected Irregulars: 2 cols -->
+            <th class="cat-irreg px-3.5 py-2.5 text-xs font-bold uppercase tracking-wider whitespace-nowrap border-b border-opacity-10" colspan="2">Expected Irregulars</th>
+
+            <!-- Unknown Unexpected: 1 col -->
+            <th class="cat-unknown px-3.5 py-2.5 text-xs font-bold uppercase tracking-wider whitespace-nowrap border-b border-opacity-10" colspan="1">Unknown Unexpected</th>
+
+            <!-- Yolo: 2 cols -->
+            <th class="cat-yolo px-3.5 py-2.5 text-xs font-bold uppercase tracking-wider whitespace-nowrap border-b border-opacity-10" colspan="2">Yolo</th>
+
+            <!-- Sum -->
+            <th class="px-3.5 py-2.5 text-xs font-bold uppercase tracking-wider whitespace-nowrap border-b border-l" style="background: #1a1a2e; color: #e2e8f0; border-color: var(--border2);">Month Sum</th>
+          </tr>
+
+          <!-- ══ SUBCATEGORY HEADER ROW ══ -->
+          <tr class="sub-row">
+            <th class="sub-month px-3 py-2 text-xs font-medium whitespace-nowrap border-b-2" style="background: var(--surface2); color: var(--muted); border-color: var(--border2);">Month</th>
+
+            <!-- Fixed -->
+            <th class="sub-fixed px-3 py-2 text-xs font-medium whitespace-nowrap border-b-2" style="border-color: var(--border2);">Mortgage</th>
+            <th class="sub-fixed px-3 py-2 text-xs font-medium whitespace-nowrap border-b-2" style="border-color: var(--border2);">Prof. fee</th>
+
+            <!-- Monthly -->
+            <th class="sub-monthly px-3 py-2 text-xs font-medium whitespace-nowrap border-b-2" style="border-color: var(--border2);">Bills</th>
+            <th class="sub-monthly px-3 py-2 text-xs font-medium whitespace-nowrap border-b-2" style="border-color: var(--border2);">Discretionary</th>
+
+            <!-- Annual Essentials -->
+            <th class="sub-annual px-3 py-2 text-xs font-medium whitespace-nowrap border-b-2" style="border-color: var(--border2);">Car</th>
+            <th class="sub-annual px-3 py-2 text-xs font-medium whitespace-nowrap border-b-2" style="border-color: var(--border2);">Home</th>
+            <th class="sub-annual px-3 py-2 text-xs font-medium whitespace-nowrap border-b-2" style="border-color: var(--border2);">Health</th>
+            <th class="sub-annual px-3 py-2 text-xs font-medium whitespace-nowrap border-b-2" style="border-color: var(--border2);">Travel</th>
+            <th class="sub-annual px-3 py-2 text-xs font-medium whitespace-nowrap border-b-2" style="border-color: var(--border2);">Tech &amp; admin</th>
+
+            <!-- Expected Irregulars -->
+            <th class="sub-irreg px-3 py-2 text-xs font-medium whitespace-nowrap border-b-2" style="border-color: var(--border2);">Car (5 yr)</th>
+            <th class="sub-irreg px-3 py-2 text-xs font-medium whitespace-nowrap border-b-2" style="border-color: var(--border2);">Home improv.</th>
+
+            <!-- Unknown Unexpected -->
+            <th class="sub-unknown px-3 py-2 text-xs font-medium whitespace-nowrap border-b-2" style="border-color: var(--border2);">Emergency fund</th>
+
+            <!-- Yolo -->
+            <th class="sub-yolo px-3 py-2 text-xs font-medium whitespace-nowrap border-b-2" style="border-color: var(--border2);">Monthly</th>
+            <th class="sub-yolo px-3 py-2 text-xs font-medium whitespace-nowrap border-b-2" style="border-color: var(--border2);">Annual</th>
+
+            <!-- Sum -->
+            <th class="px-3 py-2 text-xs font-medium whitespace-nowrap border-b-2 border-l" style="background: #1a1a2e; color: #94a3b8; border-color: var(--border2);">Σ Remaining</th>
+          </tr>
+        </thead>
+
+        <!-- ══ BODY: 2 sample months ══ -->
+        <tbody id="table-body">
+          <!-- Rows injected by JS below -->
+        </tbody>
+
+        <!-- ══ ROLLOVER FOOTER ══ -->
+        <tfoot class="sticky bottom-0 z-5">
+          <tr class="rollover-row">
+            <td class="rollover-label px-3 py-3.5">All-Time Rollover</td>
+            <!-- Fixed -->
+            <td class="positive px-3 py-3.5 text-sm font-semibold">+0</td>
+            <td class="positive px-3 py-3.5 text-sm font-semibold">+0</td>
+            <!-- Monthly -->
+            <td class="positive px-3 py-3.5 text-sm font-semibold">+120</td>
+            <td class="negative px-3 py-3.5 text-sm font-semibold">-45</td>
+            <!-- Annual -->
+            <td class="positive px-3 py-3.5 text-sm font-semibold">+200</td>
+            <td class="positive px-3 py-3.5 text-sm font-semibold">+150</td>
+            <td class="negative px-3 py-3.5 text-sm font-semibold">-20</td>
+            <td class="positive px-3 py-3.5 text-sm font-semibold">+80</td>
+            <td class="positive px-3 py-3.5 text-sm font-semibold">+60</td>
+            <!-- Irregulars -->
+            <td class="positive px-3 py-3.5 text-sm font-semibold">+400</td>
+            <td class="positive px-3 py-3.5 text-sm font-semibold">+200</td>
+            <!-- Unknown -->
+            <td class="positive px-3 py-3.5 text-sm font-semibold">+375</td>
+            <!-- Yolo -->
+            <td class="negative px-3 py-3.5 text-sm font-semibold">-30</td>
+            <td class="positive px-3 py-3.5 text-sm font-semibold">+120</td>
+            <!-- Sum -->
+            <td class="sum-cell positive px-3 py-3.5 text-sm font-semibold border-l" style="border-color: #14532d;" id="rollover-sum">+1610</td>
+          </tr>
+        </tfoot>
+
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── Sample data ──
+  const months = [
+    "2025-06", "2025-07", "2025-08", "2025-09", "2025-10",
+    "2025-11", "2025-12", "2026-01", "2026-02", "2026-03",
+    "2026-04", "2026-05"
+  ];
+
+  // col definitions: [css-class, allocated, spent]
+  // spent = null means not yet entered
+  const colClass = [
+    "col-fixed", "col-fixed",
+    "col-monthly", "col-monthly",
+    "col-annual", "col-annual", "col-annual", "col-annual", "col-annual",
+    "col-irreg", "col-irreg",
+    "col-unknown",
+    "col-yolo", "col-yolo"
+  ];
+
+  // Seed allocations per bucket (monthly £)
+  const allocations = [
+    1200, 500,        // Fixed
+    800, 400,         // Monthly
+    80, 60, 40, 100, 120, // Annual
+    70, 50,           // Irregulars
+    100,              // Unknown unexpected
+    200, 80           // Yolo
+  ];
+
+  function fmtRemaining(alloc, spent) {
+    if (spent === null) return `<div class="remaining zero">Spent not entered</div>`;
+    const diff = alloc - spent;
+    if (diff > 0) return `<div class="remaining positive">▲ +${diff}</div>`;
+    if (diff < 0) return `<div class="remaining negative">▼ ${diff}</div>`;
+    return `<div class="remaining zero">= 0</div>`;
+  }
+
+  function fmtSum(val, hasNull) {
+    const cls = val > 0 ? "positive" : val < 0 ? "negative" : "zero";
+    const sign = val > 0 ? "+" : "";
+    const note = hasNull ? `<div class="sum-note">some not entered</div>` : "";
+    return `<td class="sum-cell ${cls}"><div class="sum-value">${sign}${val}</div>${note}</td>`;
+  }
+
+  function buildRow(monthLabel, isCurrentMonth) {
+    let cells = `<td class="month-cell" style="font-family: var(--font-head); font-size: 0.9rem; font-weight: 700; color: #cbd5e1; white-space: nowrap; min-width: 100px; vertical-align: middle; padding: 12px;">${monthLabel}${isCurrentMonth ? '<br><span style="font-size:0.62rem;color:var(--accent);font-family:var(--font-mono);">current</span>' : ''}</td>`;
+
+    let rowSum = 0;
+    let hasNull = false;
+
+    allocations.forEach((alloc, i) => {
+      const monthIdx = months.indexOf(monthLabel);
+      const isRecent = monthIdx >= months.length - 2;
+      const spentVal = isRecent ? null : Math.round(alloc * (0.7 + Math.random() * 0.5));
+      const spentDisplay = spentVal === null ? "—" : spentVal;
+
+      if (spentVal === null) { hasNull = true; }
+      else { rowSum += alloc - spentVal; }
+
+      cells += `
+        <td class="bucket-cell ${colClass[i]}" style="min-width: 140px; padding: 12px; border-bottom: 1px solid var(--border); vertical-align: top;">
+          <span class="lbl">Alloc</span>
+          <div class="display-value">${alloc}</div>
+          <span class="lbl">Spent</span>
+          <div class="display-value">${spentDisplay}</div>
+          ${fmtRemaining(alloc, spentVal)}
+        </td>`;
+    });
+
+    cells += fmtSum(rowSum, hasNull);
+    return `<tr>${cells}</tr>`;
+  }
+
+  // Inject rows
+  const tbody = document.getElementById("table-body");
+  months.forEach((m, i) => {
+    tbody.innerHTML += buildRow(m, i === months.length - 1);
+  });
+
+  // Compute rollover sum from rendered tds
+  (function() {
+    const rolloverCells = document.querySelectorAll("tr.rollover-row td:not(.rollover-label):not(.sum-cell)");
+    let total = 0;
+    rolloverCells.forEach(td => { total += parseFloat(td.textContent) || 0; });
+    const el = document.getElementById("rollover-sum");
+    el.className = `sum-cell ${total > 0 ? "positive" : total < 0 ? "negative" : "zero"}`;
+    el.innerHTML = `<div class="sum-value">${total > 0 ? "+" : ""}${total}</div>`;
+  })();
+</script>
+
+</body>
+</html>
