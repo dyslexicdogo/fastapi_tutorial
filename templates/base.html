@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>FlowBucks · Budget Core</title>
+  <title>My Budget App</title>
   <!-- Tailwind CSS + Google Fonts + Font Awesome Icons -->
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
@@ -94,7 +94,7 @@
             </button>
             <!-- desktop sidebar toggle -->
             <button id="desktopSidebarToggle" class="hidden md:flex text-slate-500 hover:text-slate-800 transition p-1 rounded-lg">
-              <i class="fas fa-bars-staggered text-xl"></i>
+              <i class="fas fa-bars text-xl"></i>
             </button>
             <div class="hidden md:block">
               <h1 class="text-xl font-bold text-slate-800 tracking-tight">Budget dashboard</h1>
@@ -147,45 +147,6 @@
     </main>
   </div>
 
-  <script>
-    // ========== SIDEBAR TOGGLE (hamburger + collapsible) ==========
-    const sidebar = document.getElementById('sidebar');
-const overlay = document.getElementById('sidebarOverlay');
-const hamburger = document.getElementById('hamburgerBtn');
-const closeBtn = document.getElementById('closeSidebarBtn');
-const desktopToggle = document.getElementById('desktopSidebarToggle');
-const navLinks = document.querySelectorAll('.sidebar-link');
-
-// Track state explicitly
-let sidebarOpen = false;
-
-function setSidebar(open) {
-  sidebarOpen = open;
-  if (open) {
-    sidebar.classList.remove('-translate-x-full');
-    sidebar.classList.add('translate-x-0');
-    overlay.classList.remove('hidden');   // always show overlay
-    document.body.style.overflow = 'hidden';
-  } else {
-    sidebar.classList.add('-translate-x-full');
-    sidebar.classList.remove('translate-x-0');
-    overlay.classList.add('hidden');
-    document.body.style.overflow = '';
-  }
-}
-
-// Open by default on desktop
-setSidebar(false);
-
-if (hamburger)    hamburger.addEventListener('click', () => setSidebar(true));
-if (closeBtn)     closeBtn.addEventListener('click', () => setSidebar(false));
-if (overlay)      overlay.addEventListener('click', () => setSidebar(false));
-if (desktopToggle) desktopToggle.addEventListener('click', () => setSidebar(!sidebarOpen));
-
-// Close sidebar when any nav link is clicked (before navigation)
-navLinks.forEach(link => {
-  link.addEventListener('click', () => setSidebar(false));
-});
-  </script>
+  <script src="{{ url_for('static', path='js/myscript.js') }}"></script>
 </body>
 </html>
