@@ -1,3 +1,4 @@
+from urllib import request
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
@@ -10,8 +11,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-@app.get("/", response_class=HTMLResponse)
-async def dashboard(request: Request):
-    return templates.TemplateResponse(
-        name ="base.html", request=Request, context={"request": request, "title": "Dashboard"}
-    )
+@app.get("/")
+async def root():
+    return {"status": "ok"}
