@@ -1,21 +1,42 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="bg-white rounded-2xl shadow-lg p-6 overflow-x-auto">
+<div class="bg-white rounded-2xl shadow-lg p-6">
+
+  <!-- Loading / error states -->
   <div id="loadingMsg" class="text-slate-500 py-8 text-center">Loading view data…</div>
-  <div id="errorMsg" class="hidden mb-4 px-4 py-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm"></div>
+  <div id="errorMsg"
+       class="hidden mb-4 px-4 py-3 rounded-lg bg-red-50 border border-red-200
+              text-red-700 text-sm"></div>
 
   <div id="viewContainer" class="hidden">
-    <table class="w-full text-sm whitespace-nowrap" id="viewTable">
-      <thead id="tableHead"></thead>
-      <tbody id="tableBody"></tbody>
-    </table>
 
-    <div class="mt-6 flex items-center justify-center gap-4">
-      <button id="prevBtn" class="px-5 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 text-sm font-medium rounded-lg transition disabled:opacity-40 disabled:cursor-not-allowed" disabled>← Prev</button>
-      <span id="pageInfo" class="text-sm text-slate-500"></span>
-      <button id="nextBtn" class="px-5 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 text-sm font-medium rounded-lg transition disabled:opacity-40 disabled:cursor-not-allowed">Next →</button>
+    <!-- Scrollable table wrapper -->
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm whitespace-nowrap" id="viewTable">
+        <thead id="tableHead"></thead>
+        <tbody id="tableBody"></tbody>
+      </table>
     </div>
+
+    <!-- Pagination controls — outside the scroll wrapper so they don't scroll -->
+    <div class="mt-6 flex items-center justify-center gap-4">
+      <button id="olderBtn"
+              class="px-5 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700
+                     text-sm font-medium rounded-lg transition
+                     disabled:opacity-40 disabled:cursor-not-allowed">
+        ← Older
+      </button>
+      <span id="pageInfo" class="text-sm text-slate-500"></span>
+      <button id="newerBtn"
+              class="px-5 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700
+                     text-sm font-medium rounded-lg transition
+                     disabled:opacity-40 disabled:cursor-not-allowed"
+              disabled>
+        Newer →
+      </button>
+    </div>
+
   </div>
 </div>
 {% endblock %}
@@ -24,19 +45,22 @@
 <script>
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
+// DOM references
 const thead    = document.getElementById('tableHead');
 const tbody    = document.getElementById('tableBody');
 const loading  = document.getElementById('loadingMsg');
 const errorMsg = document.getElementById('errorMsg');
 const viewWrap = document.getElementById('viewContainer');
-const prevBtn  = document.getElementById('prevBtn');
-const nextBtn  = document.getElementById('nextBtn');
+const olderBtn = document.getElementById('olderBtn');
+const newerBtn = document.getElementById('newerBtn');
 const pageInfo = document.getElementById('pageInfo');
 
+// State
 let currentOffset = 0;
 let hasMore = false;
-let buckets = [];
+let buckets = [];   // populated from /api/rollover, used to build table columns
 
+// ── Auth ──────────────────────────────────────────────────────────────────
 function token() { return localStorage.getItem('token'); }
 
 function apiHeaders() {
@@ -46,6 +70,7 @@ function apiHeaders() {
   };
 }
 
+// ── Error helpers ─────────────────────────────────────────────────────────
 function showError(msg) {
   errorMsg.textContent = msg;
   errorMsg.classList.remove('hidden');
@@ -55,25 +80,37 @@ function hideError() {
   errorMsg.classList.add('hidden');
 }
 
+// ── Load bucket list from rollover endpoint ───────────────────────────────
+// We use /api/rollover to get the bucket names and order for the column headers.
+// It also gives us the cumulative balances for the pinned rollover row.
 async function loadBuckets() {
-  try {
-    const res = await fetch('/api/rollover', { headers: apiHeaders() });
-    if (res.ok) {
-      const data = await res.json();
-      buckets = data.map(r => ({ id: r.bucket_id, name: r.display_name, balance: r.cumulative_balance }));
-    }
-  } catch (_) {}
+  const res = await fetch('/api/rollover', { headers: apiHeaders() });
+
+  if (!res.ok) {
+    if (res.status === 401) { window.location.href = '/login'; return; }
+    throw new Error(`Failed to load rollover data (${res.status})`);
+  }
+
+  const data = await res.json();
+  buckets = data.map(r => ({
+    id:      r.bucket_id,
+    name:    r.display_name,
+    balance: r.cumulative_balance,
+  }));
 }
 
+// ── Build table header row ────────────────────────────────────────────────
 function buildHeader() {
   const tr = document.createElement('tr');
   tr.className = 'border-b border-slate-200 text-slate-500 text-xs uppercase tracking-wider';
 
+  // Sticky month column
   const thMonth = document.createElement('th');
   thMonth.className = 'text-left py-2 pr-4 sticky left-0 bg-white';
-  thMonth.textContent = 'Year-Month';
+  thMonth.textContent = 'Month';
   tr.appendChild(thMonth);
 
+  // One column per bucket
   buckets.forEach(b => {
     const th = document.createElement('th');
     th.className = 'text-right py-2 px-2 min-w-[90px]';
@@ -81,146 +118,199 @@ function buildHeader() {
     tr.appendChild(th);
   });
 
+  // Monthly sum column
   const thSum = document.createElement('th');
-  thSum.className = 'text-right py-2 pl-2 min-w-[90px] border-l border-slate-200';
-  thSum.textContent = 'Monthly sum';
+  thSum.className = 'text-right py-2 pl-4 min-w-[100px] border-l border-slate-200';
+  thSum.textContent = 'Sum £';
   tr.appendChild(thSum);
 
   thead.innerHTML = '';
   thead.appendChild(tr);
 }
 
+// ── Build rollover row (pinned at the top of tbody) ───────────────────────
+// Kept at top because the month rows run newest→oldest below it.
 function buildRolloverRow() {
   const tr = document.createElement('tr');
   tr.className = 'border-b-2 border-slate-300 bg-slate-50';
 
+  // Label cell
   const tdLabel = document.createElement('td');
   tdLabel.className = 'py-2 pr-4 font-semibold text-slate-700 text-xs uppercase tracking-wider sticky left-0 bg-slate-50';
   tdLabel.textContent = 'Rollover';
   tr.appendChild(tdLabel);
 
-  const total = buckets.reduce((s, b) => s + b.balance, 0);
+  // Balance per bucket
+  const grandTotal = buckets.reduce((s, b) => s + b.balance, 0);
 
   buckets.forEach(b => {
     const td = document.createElement('td');
     td.className = 'py-2 px-2 text-right text-sm font-medium text-slate-800';
-    td.textContent = `\u00A3${b.balance.toFixed(2)}`;
+    td.textContent = fmt(b.balance);
     tr.appendChild(td);
   });
 
+  // Grand total rollover
   const tdTotal = document.createElement('td');
-  tdTotal.className = 'py-2 pl-2 text-right text-sm font-bold text-slate-900 border-l border-slate-200';
-  tdTotal.textContent = `\u00A3${total.toFixed(2)}`;
+  tdTotal.className = 'py-2 pl-4 text-right text-sm font-bold text-slate-900 border-l border-slate-200';
+  tdTotal.textContent = fmt(grandTotal);
   tr.appendChild(tdTotal);
 
   tbody.appendChild(tr);
 }
 
+// ── Update pagination buttons and label ───────────────────────────────────
+// ← Older: increments offset (digs further back in history)
+//          disabled when there are no more older months (has_more = false)
+// Newer →: decrements offset (comes back towards the present)
+//          disabled when already at the most recent page (offset = 0)
 function updatePagination() {
-  prevBtn.disabled = currentOffset === 0;
-  nextBtn.disabled = !hasMore;
+  olderBtn.disabled = !hasMore;
+  newerBtn.disabled = currentOffset === 0;
   pageInfo.textContent = `Page ${currentOffset + 1}`;
 }
 
+// ── Load and render the view table ───────────────────────────────────────
 async function loadView() {
   hideError();
   loading.classList.remove('hidden');
   viewWrap.classList.add('hidden');
 
   try {
-    const res = await fetch(`/api/view?offset=${currentOffset}`, { headers: apiHeaders() });
+    const res = await fetch(`/api/view?offset=${currentOffset}`, {
+      headers: apiHeaders(),
+    });
+
     if (!res.ok) {
       if (res.status === 401) { window.location.href = '/login'; return; }
       throw new Error(`Server error ${res.status}`);
     }
+
     const data = await res.json();
 
     tbody.innerHTML = '';
-    buildRolloverRow();
-    data.months.forEach(m => renderMonth(m));
+    buildRolloverRow();                         // rollover pinned at top
+    data.months.forEach(m => renderMonth(m));   // months below, newest first
 
     hasMore = data.has_more;
     updatePagination();
 
     loading.classList.add('hidden');
     viewWrap.classList.remove('hidden');
+
   } catch (err) {
     loading.classList.add('hidden');
     showError(err.message);
   }
 }
 
+// ── Render one month as two rows (allocated + spent) ─────────────────────
 function renderMonth(m) {
+  // Build a lookup of entries by bucket_id for this month
   const byId = {};
-  let sumAlloc = 0, sumSpent = 0, allComplete = true;
-  m.entries.forEach(e => {
-    byId[e.bucket_id] = e;
-    sumAlloc += e.allocated || 0;
-    if (e.spent != null) sumSpent += e.spent;
-    else allComplete = false;
-  });
+  m.entries.forEach(e => { byId[e.bucket_id] = e; });
 
   const monthLabel = `${MONTHS[m.month - 1]} ${m.year}`;
-  const labelClass = 'py-2 pr-4 font-medium text-slate-800 sticky left-0 bg-white';
 
+  // ── Row 1: allocated values ──────────────────────────────────────────
   const trAlloc = document.createElement('tr');
-  trAlloc.className = 'border-b border-slate-100';
+  trAlloc.className = 'border-b border-slate-100 cursor-pointer hover:bg-slate-50 transition-colors';
 
+  // Month label spans both rows — clicking navigates to /entry for that month
   const tdLabel = document.createElement('td');
-  tdLabel.className = labelClass;
+  tdLabel.className = 'py-1 pr-4 font-medium text-slate-800 text-sm sticky left-0 bg-white align-middle';
   tdLabel.rowSpan = 2;
   tdLabel.textContent = monthLabel;
+  tdLabel.title = `Open ${monthLabel} in data entry`;
+  tdLabel.style.cursor = 'pointer';
+  tdLabel.addEventListener('click', () => {
+    window.location.href = `/entry?year=${m.year}&month=${m.month}`;
+  });
   trAlloc.appendChild(tdLabel);
 
+  // Allocated value per bucket
   buckets.forEach(b => {
-    const e = byId[b.id];
+    const e  = byId[b.id];
     const td = document.createElement('td');
-    td.className = 'py-1 px-2 text-right text-slate-700 text-xs';
-    td.textContent = e && e.allocated != null ? `\u00A3${e.allocated.toFixed(2)}` : '—';
+    td.className = 'py-1 px-2 text-right text-slate-600 text-xs';
+    td.textContent = e && e.allocated != null ? fmt(e.allocated) : '—';
     trAlloc.appendChild(td);
   });
 
-  const tdSumAlloc = document.createElement('td');
-  tdSumAlloc.className = 'py-1 px-2 text-right text-xs font-medium text-slate-800 border-l border-slate-200';
-  tdSumAlloc.textContent = `\u00A3${sumAlloc.toFixed(2)}`;
-  trAlloc.appendChild(tdSumAlloc);
+  // Allocated sum for this month
+  const allocSum = m.entries.reduce((s, e) => s + (e.allocated || 0), 0);
+  const tdAllocSum = document.createElement('td');
+  tdAllocSum.className = 'py-1 pl-4 text-right text-xs font-medium text-slate-700 border-l border-slate-200';
+  tdAllocSum.textContent = fmt(allocSum);
+  trAlloc.appendChild(tdAllocSum);
 
   tbody.appendChild(trAlloc);
 
+  // ── Row 2: spent values ──────────────────────────────────────────────
   const trSpent = document.createElement('tr');
   trSpent.className = 'border-b border-slate-200';
 
+  // Spent value per bucket
   buckets.forEach(b => {
-    const e = byId[b.id];
+    const e  = byId[b.id];
     const td = document.createElement('td');
-    td.className = 'py-1 px-2 text-right text-slate-700 text-xs';
-    td.textContent = e && e.spent != null ? `\u00A3${e.spent.toFixed(2)}` : '—';
+    td.className = 'py-1 px-2 text-right text-xs';
+
+    if (e && e.spent != null) {
+      td.className += ' text-slate-800';
+      td.textContent = fmt(e.spent);
+    } else {
+      td.className += ' text-slate-400';
+      td.textContent = '—';
+    }
+
     trSpent.appendChild(td);
   });
 
-  const tdSumSpent = document.createElement('td');
-  tdSumSpent.className = 'py-1 px-2 text-right text-xs font-medium text-slate-800 border-l border-slate-200';
-  tdSumSpent.textContent = allComplete ? `\u00A3${sumSpent.toFixed(2)}` : '—';
-  trSpent.appendChild(tdSumSpent);
+  // Spent sum — show '—' if any bucket is still null (incomplete month)
+  const tdSpentSum = document.createElement('td');
+  tdSpentSum.className = 'py-1 pl-4 text-right text-xs font-medium border-l border-slate-200';
 
+  tdSpentSum.className += ' text-slate-800';
+  tdSpentSum.textContent = fmt(m.monthly_sum);
+
+  trSpent.appendChild(tdSpentSum);
   tbody.appendChild(trSpent);
 }
 
-prevBtn.addEventListener('click', () => {
-  if (currentOffset === 0) return;
-  currentOffset--;
-  loadView();
-});
+// ── Currency formatter ────────────────────────────────────────────────────
+function fmt(val) {
+  return '£' + Number(val).toLocaleString('en-GB', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
 
-nextBtn.addEventListener('click', () => {
+// ── Pagination click handlers ─────────────────────────────────────────────
+// ← Older: go further back in history (increment offset)
+olderBtn.addEventListener('click', () => {
   if (!hasMore) return;
   currentOffset++;
   loadView();
 });
 
-loadBuckets().then(() => {
-  buildHeader();
+// Newer →: come back towards the present (decrement offset)
+newerBtn.addEventListener('click', () => {
+  if (currentOffset === 0) return;
+  currentOffset--;
   loadView();
 });
+
+// ── Initial load ──────────────────────────────────────────────────────────
+// Load buckets first (needed for column headers), then load the table data.
+loadBuckets()
+  .then(() => {
+    buildHeader();
+    loadView();
+  })
+  .catch(err => {
+    loading.classList.add('hidden');
+    showError(err.message);
+  });
 </script>
 {% endblock %}

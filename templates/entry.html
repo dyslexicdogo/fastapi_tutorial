@@ -2,6 +2,8 @@
 
 {% block content %}
 <div class="bg-white rounded-2xl shadow-lg p-6">
+
+  <!-- Controls bar: year, month, autofill -->
   <div class="flex flex-wrap items-end gap-4 mb-6">
     <div>
       <label class="block text-sm font-medium text-slate-700 mb-1">Year</label>
@@ -11,29 +13,48 @@
       <label class="block text-sm font-medium text-slate-700 mb-1">Month</label>
       <select id="monthSelect" class="border border-slate-300 rounded-lg px-3 py-2 text-sm"></select>
     </div>
-    <button id="autofillBtn" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 text-sm font-medium rounded-lg transition">Autofill</button>
+    <button id="autofillBtn"
+            class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 text-sm font-medium rounded-lg transition">
+      Autofill
+    </button>
   </div>
 
+  <!-- Loading / error states -->
   <div id="loadingMsg" class="text-slate-500 py-8 text-center">Loading entries…</div>
-  <div id="errorMsg" class="hidden mb-4 px-4 py-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm"></div>
+  <div id="errorMsg"
+       class="hidden mb-4 px-4 py-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm"></div>
 
+  <!-- Entry form (hidden until data loads) -->
   <form id="entryForm" class="hidden">
     <table class="w-full text-sm">
       <thead>
         <tr class="border-b border-slate-200 text-slate-500 text-xs uppercase tracking-wider">
           <th class="text-left py-2 pr-4">Bucket</th>
-          <th class="text-right py-2 px-2 w-32">Allocated</th>
-          <th class="text-right py-2 pl-2 w-32">Spent</th>
+          <th class="text-right py-2 px-2 w-36">Allocated £</th>
+          <th class="text-right py-2 pl-2 w-36">Spent £</th>
         </tr>
       </thead>
       <tbody id="entriesBody"></tbody>
+      <tfoot>
+        <tr class="border-t-2 border-slate-300 bg-slate-50 font-medium text-sm">
+          <td class="py-3 pr-4 text-slate-700">Monthly total</td>
+          <td class="py-3 px-2 text-right text-slate-900 tabular-nums" id="totalAlloc">—</td>
+          <td class="py-3 pl-2 text-right text-slate-500 tabular-nums" id="totalSpent">—</td>
+        </tr>
+      </tfoot>
     </table>
 
-    <div class="mt-6 flex gap-3">
-      <button type="submit" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg text-sm transition">Save</button>
-      <div id="saveMsg" class="hidden text-sm text-emerald-600 self-center ml-2">Saved.</div>
+    <!-- Save button + success message -->
+    <div class="mt-6 flex gap-3 items-center">
+      <button type="submit"
+              class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white
+                     font-medium rounded-lg text-sm transition">
+        Save
+      </button>
+      <div id="saveMsg" class="hidden text-sm text-emerald-600">✓ Saved successfully.</div>
     </div>
   </form>
+
 </div>
 {% endblock %}
 
@@ -41,15 +62,19 @@
 <script>
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
-const yearSel   = document.getElementById('yearSelect');
-const monthSel  = document.getElementById('monthSelect');
-const autofill  = document.getElementById('autofillBtn');
-const form      = document.getElementById('entryForm');
-const tbody    = document.getElementById('entriesBody');
-const loading  = document.getElementById('loadingMsg');
-const errorMsg = document.getElementById('errorMsg');
-const saveMsg  = document.getElementById('saveMsg');
+// DOM references
+const yearSel    = document.getElementById('yearSelect');
+const monthSel   = document.getElementById('monthSelect');
+const autofillBtn = document.getElementById('autofillBtn');
+const form       = document.getElementById('entryForm');
+const tbody      = document.getElementById('entriesBody');
+const loading    = document.getElementById('loadingMsg');
+const errorMsg   = document.getElementById('errorMsg');
+const saveMsg    = document.getElementById('saveMsg');
+const totalAlloc = document.getElementById('totalAlloc');
+const totalSpent = document.getElementById('totalSpent');
 
+// ── Auth ──────────────────────────────────────────────────────────────────
 function token() { return localStorage.getItem('token'); }
 
 function apiHeaders() {
@@ -59,6 +84,7 @@ function apiHeaders() {
   };
 }
 
+// ── Error helpers ─────────────────────────────────────────────────────────
 function showError(msg) {
   errorMsg.textContent = msg;
   errorMsg.classList.remove('hidden');
@@ -68,24 +94,50 @@ function hideError() {
   errorMsg.classList.add('hidden');
 }
 
-const now = new Date();
+// ── Populate year/month selectors ─────────────────────────────────────────
+const now      = new Date();
 const curYear  = now.getFullYear();
 const curMonth = now.getMonth() + 1;
 
 for (let y = curYear + 1; y >= curYear - 5; y--) {
   const opt = document.createElement('option');
-  opt.value = y; opt.textContent = y;
+  opt.value = y;
+  opt.textContent = y;
   if (y === curYear) opt.selected = true;
   yearSel.appendChild(opt);
 }
 
 MONTHS.forEach((m, i) => {
   const opt = document.createElement('option');
-  opt.value = i + 1; opt.textContent = m;
+  opt.value = i + 1;
+  opt.textContent = m;
   if (i + 1 === curMonth) opt.selected = true;
   monthSel.appendChild(opt);
 });
 
+// ── Monthly total ─────────────────────────────────────────────────────────
+// Recalculates from all inputs without any API call.
+// Called after every keystroke and after autofill/load.
+function updateTotal() {
+  const allocInputs = tbody.querySelectorAll('input[data-field="allocated"]');
+  const spentInputs = tbody.querySelectorAll('input[data-field="spent"]');
+
+  let allocSum = 0;
+  let spentSum = 0;
+
+  // Blank inputs treated as 0 in both columns
+  allocInputs.forEach(inp => { allocSum += parseFloat(inp.value) || 0; });
+  spentInputs.forEach(inp => { spentSum += parseFloat(inp.value) || 0; });
+
+  totalAlloc.textContent = '£' + allocSum.toLocaleString('en-GB', {
+    minimumFractionDigits: 2, maximumFractionDigits: 2,
+  });
+  totalSpent.textContent = '£' + spentSum.toLocaleString('en-GB', {
+    minimumFractionDigits: 2, maximumFractionDigits: 2,
+  });
+}
+
+// ── Load entries for selected month ───────────────────────────────────────
 async function loadEntries() {
   hideError();
   loading.classList.remove('hidden');
@@ -95,49 +147,65 @@ async function loadEntries() {
   const month = monthSel.value;
 
   try {
-    const res = await fetch(`/api/entry?year=${year}&month=${month}`, { headers: apiHeaders() });
+    const res = await fetch(`/api/entry?year=${year}&month=${month}`, {
+      headers: apiHeaders(),
+    });
+
     if (!res.ok) {
       if (res.status === 401) { window.location.href = '/login'; return; }
       throw new Error(`Server error ${res.status}`);
     }
+
     const rows = await res.json();
     renderEntries(rows);
     loading.classList.add('hidden');
     form.classList.remove('hidden');
+
   } catch (err) {
     loading.classList.add('hidden');
     showError(err.message);
   }
 }
 
+// ── Render the 14-row form ────────────────────────────────────────────────
 function renderEntries(rows) {
   tbody.innerHTML = '';
+
   rows.forEach(row => {
     const tr = document.createElement('tr');
     tr.className = 'border-b border-slate-100';
 
+    // Bucket name
     const nameTd = document.createElement('td');
     nameTd.className = 'py-2 pr-4 text-slate-800';
     nameTd.textContent = row.display_name;
 
+    // Allocated input
     const allocTd = document.createElement('td');
     allocTd.className = 'py-2 px-2';
     const allocInput = document.createElement('input');
-    allocInput.type = 'number'; allocInput.step = '0.01';
+    allocInput.type = 'number';
+    allocInput.step = '0.01';
+    allocInput.min  = '0';
     allocInput.dataset.bucketId = row.bucket_id;
-    allocInput.dataset.field = 'allocated';
+    allocInput.dataset.field    = 'allocated';
     allocInput.className = 'w-full border border-slate-300 rounded px-2 py-1.5 text-right text-sm';
     allocInput.value = row.allocated != null ? row.allocated : '';
+    allocInput.addEventListener('input', updateTotal);   // live total update
     allocTd.appendChild(allocInput);
 
+    // Spent input
     const spentTd = document.createElement('td');
     spentTd.className = 'py-2 pl-2';
     const spentInput = document.createElement('input');
-    spentInput.type = 'number'; spentInput.step = '0.01';
+    spentInput.type = 'number';
+    spentInput.step = '0.01';
+    spentInput.min  = '0';
     spentInput.dataset.bucketId = row.bucket_id;
-    spentInput.dataset.field = 'spent';
+    spentInput.dataset.field    = 'spent';
     spentInput.className = 'w-full border border-slate-300 rounded px-2 py-1.5 text-right text-sm';
     spentInput.value = row.spent != null ? row.spent : '';
+    spentInput.addEventListener('input', updateTotal);   // live total update
     spentTd.appendChild(spentInput);
 
     tr.appendChild(nameTd);
@@ -145,27 +213,34 @@ function renderEntries(rows) {
     tr.appendChild(spentTd);
     tbody.appendChild(tr);
   });
+
+  updateTotal();   // set totals from loaded values immediately
 }
 
+// ── Collect form values for save ──────────────────────────────────────────
+// Blank spent → null (not entered), not 0
 function collectEntries() {
   const inputs = tbody.querySelectorAll('input');
   const map = {};
+
   inputs.forEach(inp => {
     const id = inp.dataset.bucketId;
     if (!map[id]) map[id] = { bucket_id: parseInt(id), allocated: null, spent: null };
     const val = inp.value.trim();
     map[id][inp.dataset.field] = val === '' ? null : parseFloat(val);
   });
+
   return Object.values(map);
 }
 
+// ── Save ──────────────────────────────────────────────────────────────────
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
   hideError();
   saveMsg.classList.add('hidden');
 
-  const year  = parseInt(yearSel.value);
-  const month = parseInt(monthSel.value);
+  const year    = parseInt(yearSel.value);
+  const month   = parseInt(monthSel.value);
   const entries = collectEntries();
 
   try {
@@ -174,18 +249,24 @@ form.addEventListener('submit', async (e) => {
       headers: apiHeaders(),
       body: JSON.stringify({ year, month, entries }),
     });
+
     if (!res.ok) {
       if (res.status === 401) { window.location.href = '/login'; return; }
       throw new Error(`Save failed (${res.status})`);
     }
+
     saveMsg.classList.remove('hidden');
     setTimeout(() => saveMsg.classList.add('hidden'), 2500);
+
   } catch (err) {
     showError(err.message);
   }
 });
 
-autofill.addEventListener('click', async () => {
+// ── Autofill ──────────────────────────────────────────────────────────────
+// Copies previous month's allocated values into the allocated inputs only.
+// Does not write to the database — user still clicks Save to persist.
+autofillBtn.addEventListener('click', async () => {
   hideError();
   const year  = parseInt(yearSel.value);
   const month = parseInt(monthSel.value);
@@ -196,25 +277,38 @@ autofill.addEventListener('click', async () => {
       headers: apiHeaders(),
       body: JSON.stringify({ year, month }),
     });
+
     if (!res.ok) {
       if (res.status === 401) { window.location.href = '/login'; return; }
       throw new Error(`Autofill failed (${res.status})`);
     }
-    const rows = await res.json();
+
+    const rows   = await res.json();
     const inputs = tbody.querySelectorAll('input[data-field="allocated"]');
     const lookup = {};
     rows.forEach(r => { lookup[r.bucket_id] = r.allocated; });
+
     inputs.forEach(inp => {
       const val = lookup[parseInt(inp.dataset.bucketId)];
       inp.value = val != null ? val : '';
     });
+
+    updateTotal();   // recalculate total after autofill
+
   } catch (err) {
     showError(err.message);
   }
 });
 
+// ── Month/year selector change ────────────────────────────────────────────
 yearSel.addEventListener('change', loadEntries);
 monthSel.addEventListener('change', loadEntries);
+
+// ── Initial load ──────────────────────────────────────────────────────────
+// Check URL params first — /entry?year=2025&month=5 pre-selects that month
+const params = new URLSearchParams(window.location.search);
+if (params.get('year'))  yearSel.value  = params.get('year');
+if (params.get('month')) monthSel.value = params.get('month');
 
 loadEntries();
 </script>

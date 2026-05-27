@@ -162,11 +162,7 @@ def get_view_data(offset: int = 0) -> dict:
         m       = months_dict[key]
         entries = m["entries"]
 
-        all_complete = all(e["spent"] is not None for e in entries)
-        monthly_sum  = (
-            sum((e["allocated"] or 0) - (e["spent"] or 0) for e in entries)
-            if all_complete else None
-        )
+        monthly_sum  = sum((e["allocated"] or 0) - (e["spent"] or 0) for e in entries)
 
         months.append({
             "year":        m["year"],
