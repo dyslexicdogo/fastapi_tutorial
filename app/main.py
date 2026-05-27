@@ -1,16 +1,34 @@
-from urllib import request
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from pathlib import Path
 
-app = FastAPI(title="FlowBucks Budget Tracker")
+from app.database import init_db
+from app.api.router import api_router
 
-BASE_DIR = Path(__file__).resolve().parent.parent
-templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
+app = FastAPI(title="Budget Tracker")
+
 app.mount("/static", StaticFiles(directory="static"), name="static")
+templates = Jinja2Templates(directory="templates")
+
+# Register all API routes
+app.include_router(api_router)
+
+
+@app.on_event("startup")
+async def startup_event():
+    init_db()
+
+
+# ── Page routes ────────────────────────────────────────────────────────────
+# These serve the HTML pages. More page routes added in Phase 5.
 
 @app.get("/")
 async def root():
-    return {"status": "ok"}
+    # Redirect bare "/" to the login page
+    return RedirectResponse(url="/login")
+
+
+@app.get("/login")
+async def login_page(request: Request):
+    return templates.TemplateResponse("login.html", {"request": request})
