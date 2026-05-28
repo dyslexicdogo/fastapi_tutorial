@@ -1,3 +1,4 @@
+from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.auth import get_current_user
@@ -15,7 +16,7 @@ from app.crud.budget import (
 router = APIRouter()
 
 
-@router.get("/api/entry", response_model=list[EntryRowResponse])
+@router.get("/api/entry", response_model=List[EntryRowResponse])
 async def entry_get(
     year:  int,
     month: int,
@@ -44,7 +45,7 @@ async def entry_post(
     return {"saved": saved}
 
 
-@router.post("/api/entry/autofill", response_model=list[EntryRowResponse])
+@router.post("/api/entry/autofill", response_model=List[EntryRowResponse])
 async def entry_autofill(
     body: AutofillRequest,
     user: str = Depends(get_current_user),     # ← protected

@@ -3,8 +3,18 @@ name = "fastapi-tutorial"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.8"
 dependencies = [
-    "fastapi>=0.136.3",
-    "uvicorn>=0.48.0",
+    "fastapi>=0.110,<0.112",
+    "uvicorn[standard]>=0.27,<1.0",
+    "python-dotenv>=1.0,<2.0",
+    "pydantic>=2.0,<2.8",
+    "pydantic-settings>=2.2,<2.8",
+    "passlib[bcrypt]>=1.7.4,<2.0",
+    "python-jose[cryptography]>=3.3,<4.0",
+    "sqlalchemy>=2.0,<3.0",
+    "anyio>=4.4,<5.0",
+    "click>=8.1,<9.0",
+    "annotated-types>=0.6,<1.0",
+    "typing-extensions>=4.8,<5.0",
 ]

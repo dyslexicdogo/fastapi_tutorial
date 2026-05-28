@@ -33,7 +33,7 @@ def decode_token(token: str) -> Optional[str]:
     except JWTError:
         return None
 
-async def get_current_user(credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme)):
+async def get_current_user(credentials: Optional[HTTPAuthorizationCredentials] = Depends(bearer_scheme)):
     if credentials is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
     username = decode_token(credentials.credentials)

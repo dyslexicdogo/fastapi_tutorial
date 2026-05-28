@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import List, Optional
 
 
 # ── Entry schemas ──────────────────────────────────────────────────────────
@@ -21,7 +21,7 @@ class SaveEntryRequest(BaseModel):
     """Request body for POST /api/entry — saves all 14 rows at once."""
     year:    int
     month:   int
-    entries: list[EntryRow]
+    entries: List[EntryRow]
 
 
 class AutofillRequest(BaseModel):
@@ -36,13 +36,13 @@ class MonthRow(BaseModel):
     """One month's data as it appears in the view table."""
     year:         int
     month:        int
-    entries:      list[EntryRow]
+    entries:      List[EntryRow]
     monthly_sum:  Optional[float] #= None   # None if any spent values are missing
 
 
 class ViewResponse(BaseModel):
     """Response for GET /api/view."""
-    months:   list[MonthRow]
+    months:   List[MonthRow]
     has_more: bool
 
 

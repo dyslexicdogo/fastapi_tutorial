@@ -1,11 +1,11 @@
 import sqlite3
-from typing import Optional
+from typing import List, Optional
 from app.database import get_connection
 
 
 # ── Entry CRUD ─────────────────────────────────────────────────────────────
 
-def get_entries_for_month(year: int, month: int) -> list[dict]:
+def get_entries_for_month(year: int, month: int) -> List[dict]:
     """
     Fetch all 14 buckets for a given month.
     Buckets with no saved entry return allocated=None, spent=None.
@@ -34,7 +34,7 @@ def get_entries_for_month(year: int, month: int) -> list[dict]:
     return rows
 
 
-def save_entries(year: int, month: int, entries: list[dict]) -> int:
+def save_entries(year: int, month: int, entries: List[dict]) -> int:
     """
     Upsert all 14 rows for a month in a single transaction.
     INSERT OR REPLACE handles both new entries and updates to existing ones.
@@ -65,7 +65,7 @@ def save_entries(year: int, month: int, entries: list[dict]) -> int:
     return saved
 
 
-def get_previous_month_allocated(year: int, month: int) -> list[dict]:
+def get_previous_month_allocated(year: int, month: int) -> List[dict]:
     """
     Fetch the previous month's allocated values for autofill.
     Returns the same shape as get_entries_for_month but with spent=None always.
@@ -176,7 +176,7 @@ def get_view_data(offset: int = 0) -> dict:
 
 # ── Rollover CRUD ──────────────────────────────────────────────────────────
 
-def get_rollover() -> list[dict]:
+def get_rollover() -> List[dict]:
     """
     Fetch cumulative all-time balance per bucket from the v_rollover view.
     Joins with buckets to include display_name in the response.
