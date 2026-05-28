@@ -26,7 +26,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, JWT_SECRET, algorithm="HS256")
 
-def decode_token(token: str) -> str | None:
+def decode_token(token: str) -> Optional[str]:
     try:
         payload = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
         return payload.get("sub")

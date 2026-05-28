@@ -1,0 +1,17 @@
+[Unit]
+Description=Budget Tracker FastAPI app
+After=network.target
+
+[Service]
+User=ubuntu
+WorkingDirectory=/home/ubuntu/fastapi_tutorial
+EnvironmentFile=/home/ubuntu/fastapi_tutorial/.env
+ExecStart=/home/ubuntu/fastapi_tutorial/venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
+
+
+/home/ubuntu/fastapi_tutorial
