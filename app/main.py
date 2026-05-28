@@ -42,3 +42,9 @@ async def entry_page(request: Request):
 @app.get("/view")
 async def view_page(request: Request):
     return templates.TemplateResponse("view.html", {"request": request, "title": "Budget View"})
+
+@app.get("/logout")
+async def logout():
+    # JWT lives in the browser's localStorage — the client clears it.
+    # This route just redirects to login; the JS on login.html clears the token.
+    return RedirectResponse(url="/login")

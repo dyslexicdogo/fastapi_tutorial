@@ -71,6 +71,9 @@
   </div>
 
   <script>
+    // Clear any existing token when the login page loads
+    localStorage.removeItem('token');
+
     const usernameInput = document.getElementById('username');
     const passwordInput = document.getElementById('password');
     const loginBtn      = document.getElementById('loginBtn');

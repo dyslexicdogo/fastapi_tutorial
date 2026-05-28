@@ -1,37 +1,79 @@
 {% extends "base.html" %}
 
-{% block content %}
-<div class="bg-white rounded-2xl shadow-lg p-6">
+{% block extra_head %}
+<style>
+  .tabnum { font-variant-numeric: tabular-nums; }
 
-  <!-- Loading / error states -->
-  <div id="loadingMsg" class="text-slate-500 py-8 text-center">Loading view data…</div>
+  /* Category header band colors */
+  .cat-fixed    { background: #012a4a; color: white; }
+  .cat-monthly  { background: #013a63; color: white; }
+  .cat-annual   { background: #01497c; color: white; }
+  .cat-expected { background: #014f86; color: white; }
+  .cat-unknown  { background: #2a6f97; color: white; }
+  .cat-yolo     { background: #2c7da0; color: white; }
+  .cat-sum      { background: #012a4a; color: white; }
+
+  /* Sub-header row (bucket names) */
+  .sub-fixed    { background: #013a63; color: #a9d6e5; }
+  .sub-monthly  { background: #01497c; color: #89c2d9; }
+  .sub-annual   { background: #014f86; color: #a9d6e5; }
+  .sub-expected { background: #2a6f97; color: #a9d6e5; }
+  .sub-unknown  { background: #2c7da0; color: #e0f2fe; }
+  .sub-yolo     { background: #468faf; color: white; }
+
+  /* Row type badge */
+  .type-a { color: #01497c; font-size: 10px; font-weight: 600;
+             letter-spacing: .04em; }
+  .type-s { color: #2a6f97; font-size: 10px; font-weight: 600;
+             letter-spacing: .04em; }
+
+  /* Month cell hover */
+  .month-link:hover { color: #01497c; text-decoration: underline; cursor: pointer; }
+
+  /* Scrollable table wrapper */
+  .tbl-scroll { overflow-x: auto; border-radius: 12px;
+                border: 1px solid #89c2d9; }
+  .tbl-scroll::-webkit-scrollbar { height: 6px; }
+  .tbl-scroll::-webkit-scrollbar-track { background: #a9d6e5; }
+  .tbl-scroll::-webkit-scrollbar-thumb { background: #89c2d9; border-radius: 3px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-2xl shadow-lg overflow-hidden border border-[#89c2d9]">
+
+  <!-- Loading / error -->
+  <div id="loadingMsg" class="text-[#468faf] py-12 text-center text-sm">
+    Loading data…
+  </div>
   <div id="errorMsg"
-       class="hidden mb-4 px-4 py-3 rounded-lg bg-red-50 border border-red-200
+       class="hidden mx-6 mt-4 px-4 py-3 rounded-lg bg-red-50 border border-red-200
               text-red-700 text-sm"></div>
 
   <div id="viewContainer" class="hidden">
 
-    <!-- Scrollable table wrapper -->
-    <div class="overflow-x-auto">
+    <!-- Scrollable table -->
+    <div class="tbl-scroll mx-6 mt-6">
       <table class="w-full text-sm whitespace-nowrap" id="viewTable">
         <thead id="tableHead"></thead>
         <tbody id="tableBody"></tbody>
       </table>
     </div>
 
-    <!-- Pagination controls — outside the scroll wrapper so they don't scroll -->
-    <div class="mt-6 flex items-center justify-center gap-4">
+    <!-- Pagination -->
+    <div class="flex items-center justify-between px-6 py-4 border-t border-[#89c2d9] mt-4">
       <button id="olderBtn"
-              class="px-5 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700
-                     text-sm font-medium rounded-lg transition
-                     disabled:opacity-40 disabled:cursor-not-allowed">
+              class="px-5 py-2 bg-[#a9d6e5] hover:bg-[#89c2d9] text-[#013a63] text-sm
+                     font-medium rounded-lg transition disabled:opacity-40
+                     disabled:cursor-not-allowed flex items-center gap-2">
         ← Older
       </button>
-      <span id="pageInfo" class="text-sm text-slate-500"></span>
+      <span id="pageInfo" class="text-xs text-[#468faf] font-medium uppercase
+                                  tracking-wider"></span>
       <button id="newerBtn"
-              class="px-5 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700
-                     text-sm font-medium rounded-lg transition
-                     disabled:opacity-40 disabled:cursor-not-allowed"
+              class="px-5 py-2 bg-[#a9d6e5] hover:bg-[#89c2d9] text-[#013a63] text-sm
+                     font-medium rounded-lg transition disabled:opacity-40
+                     disabled:cursor-not-allowed flex items-center gap-2"
               disabled>
         Newer →
       </button>
@@ -43,9 +85,31 @@
 
 {% block extra_scripts %}
 <script>
-const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun',
+                'Jul','Aug','Sep','Oct','Nov','Dec'];
 
-// DOM references
+// ── Category group definitions ─────────────────────────────────────────────
+// Groups the 14 buckets into colour-coded header bands.
+const GROUPS = [
+  { label:'Fixed',     catCls:'cat-fixed',    subCls:'sub-fixed',
+    ids:[1,2],         short:{ 1:'Mortg.', 2:'Prof.' } },
+  { label:'Monthly',   catCls:'cat-monthly',  subCls:'sub-monthly',
+    ids:[3,4],         short:{ 3:'M.Ess.', 4:'M.Disc.' } },
+  { label:'Annual Ess.',catCls:'cat-annual',  subCls:'sub-annual',
+    ids:[5,6,7,8,9],   short:{ 5:'Car', 6:'Home', 7:'Health',
+                               8:'Travel', 9:'Tech' } },
+  { label:'Expected',  catCls:'cat-expected', subCls:'sub-expected',
+    ids:[10,11],       short:{ 10:'Car Rep.', 11:'H.Pump' } },
+  { label:'Unknown',   catCls:'cat-unknown',  subCls:'sub-unknown',
+    ids:[12],          short:{ 12:'Unknwn' } },
+  { label:'Yolo',      catCls:'cat-yolo',     subCls:'sub-yolo',
+    ids:[13,14],       short:{ 13:'Yolo M.', 14:'Yolo A.' } },
+];
+
+// Flat ordered bucket list (populated after loadBuckets)
+let buckets = [];
+
+// DOM
 const thead    = document.getElementById('tableHead');
 const tbody    = document.getElementById('tableBody');
 const loading  = document.getElementById('loadingMsg');
@@ -55,259 +119,282 @@ const olderBtn = document.getElementById('olderBtn');
 const newerBtn = document.getElementById('newerBtn');
 const pageInfo = document.getElementById('pageInfo');
 
-// State
 let currentOffset = 0;
-let hasMore = false;
-let buckets = [];   // populated from /api/rollover, used to build table columns
+let hasMore       = false;
 
-// ── Auth ──────────────────────────────────────────────────────────────────
-function token() { return localStorage.getItem('token'); }
-
+function token()      { return localStorage.getItem('token'); }
 function apiHeaders() {
-  return {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${token()}`,
-  };
+  return { 'Content-Type':'application/json', 'Authorization':`Bearer ${token()}` };
+}
+function showError(msg) { errorMsg.textContent = msg; errorMsg.classList.remove('hidden'); }
+function hideError()    { errorMsg.classList.add('hidden'); }
+
+function fmt(val) {
+  if (val == null) return '—';
+  return '£' + Number(val).toLocaleString('en-GB', {
+    minimumFractionDigits: 2, maximumFractionDigits: 2
+  });
 }
 
-// ── Error helpers ─────────────────────────────────────────────────────────
-function showError(msg) {
-  errorMsg.textContent = msg;
-  errorMsg.classList.remove('hidden');
-}
-
-function hideError() {
-  errorMsg.classList.add('hidden');
-}
-
-// ── Load bucket list from rollover endpoint ───────────────────────────────
-// We use /api/rollover to get the bucket names and order for the column headers.
-// It also gives us the cumulative balances for the pinned rollover row.
+// ── Load rollover (also gives us bucket list + balances) ───────────────────
 async function loadBuckets() {
   const res = await fetch('/api/rollover', { headers: apiHeaders() });
-
   if (!res.ok) {
-    if (res.status === 401) { window.location.href = '/login'; return; }
-    throw new Error(`Failed to load rollover data (${res.status})`);
+    if (res.status === 401) { location.href = '/login'; return; }
+    throw new Error(`Failed to load rollover (${res.status})`);
   }
-
   const data = await res.json();
   buckets = data.map(r => ({
-    id:      r.bucket_id,
-    name:    r.display_name,
-    balance: r.cumulative_balance,
+    id: r.bucket_id, name: r.display_name, balance: r.cumulative_balance
   }));
 }
 
-// ── Build table header row ────────────────────────────────────────────────
+// ── Build two-row header ───────────────────────────────────────────────────
 function buildHeader() {
-  const tr = document.createElement('tr');
-  tr.className = 'border-b border-slate-200 text-slate-500 text-xs uppercase tracking-wider';
+  // Row 1 — category group labels with colours
+  const tr1 = document.createElement('tr');
 
-  // Sticky month column
+  // Month cell (spans 2 header rows + 2 data sub-rows via rowspan on data)
   const thMonth = document.createElement('th');
-  thMonth.className = 'text-left py-2 pr-4 sticky left-0 bg-white';
+  thMonth.rowSpan = 2;
+  thMonth.className = 'cat-sum text-left py-2.5 px-3 text-xs font-semibold sticky left-0 z-20 min-w-[90px]';
   thMonth.textContent = 'Month';
-  tr.appendChild(thMonth);
+  tr1.appendChild(thMonth);
 
-  // One column per bucket
-  buckets.forEach(b => {
+  // Type indicator column (A/S) - spans 2 header rows
+  const thType = document.createElement('th');
+  thType.rowSpan = 2;
+  thType.className = 'cat-sum text-center py-2.5 px-1 text-xs sticky left-[90px] z-20 w-8';
+  thType.textContent = '';
+  tr1.appendChild(thType);
+
+  // Category group header cells
+  GROUPS.forEach(g => {
     const th = document.createElement('th');
-    th.className = 'text-right py-2 px-2 min-w-[90px]';
-    th.textContent = b.name;
-    tr.appendChild(th);
+    th.colSpan    = g.ids.length;
+    th.className  = `${g.catCls} text-center py-2.5 px-2 text-xs font-semibold
+                     border-l border-white/20 tracking-wide`;
+    th.textContent = g.label;
+    tr1.appendChild(th);
   });
 
-  // Monthly sum column
+  // Sum cell (spans 2 header rows)
   const thSum = document.createElement('th');
-  thSum.className = 'text-right py-2 pl-4 min-w-[100px] border-l border-slate-200';
+  thSum.rowSpan = 2;
+  thSum.className = 'cat-sum text-right py-2.5 px-3 text-xs font-semibold border-l border-white/20 min-w-[80px]';
   thSum.textContent = 'Sum £';
-  tr.appendChild(thSum);
+  tr1.appendChild(thSum);
+
+  // Row 2 — individual short bucket names
+  const tr2 = document.createElement('tr');
+  GROUPS.forEach(g => {
+    g.ids.forEach(id => {
+      const bkt = buckets.find(b => b.id === id);
+      const th  = document.createElement('th');
+      th.className = `${g.subCls} text-right py-2 px-2 text-xs font-medium
+                      border-l border-white/10 min-w-[68px] tabnum`;
+      th.textContent = g.short[id] || (bkt ? bkt.name : id);
+      tr2.appendChild(th);
+    });
+  });
 
   thead.innerHTML = '';
-  thead.appendChild(tr);
+  thead.appendChild(tr1);
+  thead.appendChild(tr2);
 }
 
-// ── Build rollover row (pinned at the top of tbody) ───────────────────────
-// Kept at top because the month rows run newest→oldest below it.
+// ── Build rollover row (pinned at top of tbody) ────────────────────────────
 function buildRolloverRow() {
+  // ── Allocated row (shows cumulative balance per bucket)
   const tr = document.createElement('tr');
-  tr.className = 'border-b-2 border-slate-300 bg-slate-50';
+  tr.className = 'border-b-2 border-[#89c2d9]';
+  tr.style.background = '#a9d6e5';
 
-  // Label cell
+  // Month label cell
   const tdLabel = document.createElement('td');
-  tdLabel.className = 'py-2 pr-4 font-semibold text-slate-700 text-xs uppercase tracking-wider sticky left-0 bg-slate-50';
+  tdLabel.rowSpan = 1;
+  tdLabel.className = 'py-2.5 px-3 text-xs font-bold text-[#012a4a] uppercase tracking-wider sticky left-0 z-10';
+  tdLabel.style.background = '#a9d6e5';
   tdLabel.textContent = 'Rollover';
   tr.appendChild(tdLabel);
 
-  // Balance per bucket
-  const grandTotal = buckets.reduce((s, b) => s + b.balance, 0);
+  // Type badge
+  const tdType = document.createElement('td');
+  tdType.className = 'py-2.5 px-1 sticky left-[90px] z-10';
+  tdType.style.background = '#a9d6e5';
+  tr.appendChild(tdType);
 
+  // Balance per bucket
+  const grandTotal = buckets.reduce((s,b) => s + b.balance, 0);
   buckets.forEach(b => {
     const td = document.createElement('td');
-    td.className = 'py-2 px-2 text-right text-sm font-medium text-slate-800';
+    td.className = 'py-2.5 px-2 text-right text-xs font-semibold text-[#013a63] tabnum';
     td.textContent = fmt(b.balance);
     tr.appendChild(td);
   });
 
-  // Grand total rollover
-  const tdTotal = document.createElement('td');
-  tdTotal.className = 'py-2 pl-4 text-right text-sm font-bold text-slate-900 border-l border-slate-200';
-  tdTotal.textContent = fmt(grandTotal);
-  tr.appendChild(tdTotal);
+  // Grand total
+  const tdSum = document.createElement('td');
+  tdSum.className = 'py-2.5 px-3 text-right text-xs font-bold text-[#012a4a] tabnum border-l border-[#89c2d9]';
+  tdSum.textContent = fmt(grandTotal);
+  tr.appendChild(tdSum);
 
   tbody.appendChild(tr);
 }
 
-// ── Update pagination buttons and label ───────────────────────────────────
-// ← Older: increments offset (digs further back in history)
-//          disabled when there are no more older months (has_more = false)
-// Newer →: decrements offset (comes back towards the present)
-//          disabled when already at the most recent page (offset = 0)
+// ── Render one month as two rows (allocated + spent) ──────────────────────
+function renderMonth(m, isEven) {
+  const byId  = {};
+  m.entries.forEach(e => { byId[e.bucket_id] = e; });
+
+  const monthLabel  = `${MONTHS[m.month - 1]} ${m.year}`;
+  const rowBg       = isEven ? '#ffffff' : '#f0f8fc';
+  const rowBgHover  = '#a9d6e5';
+
+  // ── Row 1: allocated ───────────────────────────────────────────────────
+  const trA = document.createElement('tr');
+  trA.className = 'border-b border-[#89c2d9]/40';
+  trA.style.background = rowBg;
+  trA.onmouseenter = () => {
+    [trA, trS].forEach(r => r.style.background = rowBgHover);
+  };
+  trA.onmouseleave = () => {
+    [trA, trS].forEach(r => r.style.background = rowBg);
+  };
+
+  // Month label — rowSpan=2, spans allocated + spent rows
+  const tdMonth = document.createElement('td');
+  tdMonth.rowSpan = 2;
+  tdMonth.className = 'py-2 px-3 font-semibold text-[#013a63] text-sm sticky left-0 z-10 align-middle month-link';
+  tdMonth.style.background = rowBg;
+  tdMonth.textContent = monthLabel;
+  tdMonth.title = `Edit ${monthLabel}`;
+  tdMonth.addEventListener('click', () => {
+    location.href = `/entry?year=${m.year}&month=${m.month}`;
+  });
+  trA.appendChild(tdMonth);
+
+  // Type badge — "A" for allocated
+  const tdTypeA = document.createElement('td');
+  tdTypeA.className = 'py-1.5 px-1 text-center sticky left-[90px] z-10';
+  tdTypeA.style.background = rowBg;
+  tdTypeA.innerHTML = '<span class="type-a">A</span>';
+  trA.appendChild(tdTypeA);
+
+  // Allocated values per bucket
+  buckets.forEach(b => {
+    const e  = byId[b.id];
+    const td = document.createElement('td');
+    td.className = 'py-1.5 px-2 text-right text-xs text-[#468faf] tabnum';
+    td.textContent = e && e.allocated != null ? fmt(e.allocated) : '—';
+    trA.appendChild(td);
+  });
+
+  // Allocated sum
+  const allocSum = m.entries.reduce((s,e) => s + (e.allocated || 0), 0);
+  const tdASum = document.createElement('td');
+  tdASum.className = 'py-1.5 px-3 text-right text-xs text-[#468faf] font-medium tabnum border-l border-[#89c2d9]';
+  tdASum.textContent = fmt(allocSum);
+  trA.appendChild(tdASum);
+
+  // ── Row 2: spent ───────────────────────────────────────────────────────
+  const trS = document.createElement('tr');
+  trS.className = 'border-b border-[#89c2d9]/60';
+  trS.style.background = rowBg;
+  trS.onmouseenter = () => {
+    [trA, trS].forEach(r => r.style.background = rowBgHover);
+  };
+  trS.onmouseleave = () => {
+    [trA, trS].forEach(r => r.style.background = rowBg);
+  };
+
+  // Type badge — "S" for spent
+  const tdTypeS = document.createElement('td');
+  tdTypeS.className = 'py-1.5 px-1 text-center sticky left-[90px] z-10';
+  tdTypeS.style.background = rowBg;
+  tdTypeS.innerHTML = '<span class="type-s">S</span>';
+  trS.appendChild(tdTypeS);
+
+  // Spent values per bucket
+  buckets.forEach(b => {
+    const e  = byId[b.id];
+    const td = document.createElement('td');
+    if (e && e.spent != null) {
+      td.className  = 'py-1.5 px-2 text-right text-xs font-medium text-[#013a63] tabnum';
+      td.textContent = fmt(e.spent);
+    } else {
+      td.className  = 'py-1.5 px-2 text-right text-xs text-[#89c2d9] tabnum';
+      td.textContent = '—';
+    }
+    trS.appendChild(td);
+  });
+
+  // Monthly sum (net saving = allocated - spent)
+  const tdSSum = document.createElement('td');
+  tdSSum.className = 'py-1.5 px-3 text-right text-xs font-bold tabnum border-l border-[#89c2d9]';
+  if (m.monthly_sum != null) {
+    tdSSum.style.color = m.monthly_sum >= 0 ? '#15803d' : '#dc2626'; // green / red
+    tdSSum.textContent = fmt(m.monthly_sum);
+  } else {
+    tdSSum.className += ' text-[#89c2d9]';
+    tdSSum.textContent = '—';
+  }
+  trS.appendChild(tdSSum);
+
+  tbody.appendChild(trA);
+  tbody.appendChild(trS);
+}
+
+// ── Pagination state ───────────────────────────────────────────────────────
 function updatePagination() {
   olderBtn.disabled = !hasMore;
   newerBtn.disabled = currentOffset === 0;
   pageInfo.textContent = `Page ${currentOffset + 1}`;
 }
 
-// ── Load and render the view table ───────────────────────────────────────
+// ── Load view data ─────────────────────────────────────────────────────────
 async function loadView() {
   hideError();
   loading.classList.remove('hidden');
   viewWrap.classList.add('hidden');
 
   try {
-    const res = await fetch(`/api/view?offset=${currentOffset}`, {
-      headers: apiHeaders(),
-    });
-
+    const res = await fetch(`/api/view?offset=${currentOffset}`,
+                            { headers: apiHeaders() });
     if (!res.ok) {
-      if (res.status === 401) { window.location.href = '/login'; return; }
+      if (res.status === 401) { location.href = '/login'; return; }
       throw new Error(`Server error ${res.status}`);
     }
-
     const data = await res.json();
 
     tbody.innerHTML = '';
-    buildRolloverRow();                         // rollover pinned at top
-    data.months.forEach(m => renderMonth(m));   // months below, newest first
+    buildRolloverRow();
+    data.months.forEach((m, i) => renderMonth(m, i % 2 === 0));
 
     hasMore = data.has_more;
     updatePagination();
-
     loading.classList.add('hidden');
     viewWrap.classList.remove('hidden');
 
-  } catch (err) {
+  } catch(err) {
     loading.classList.add('hidden');
     showError(err.message);
   }
 }
 
-// ── Render one month as two rows (allocated + spent) ─────────────────────
-function renderMonth(m) {
-  // Build a lookup of entries by bucket_id for this month
-  const byId = {};
-  m.entries.forEach(e => { byId[e.bucket_id] = e; });
-
-  const monthLabel = `${MONTHS[m.month - 1]} ${m.year}`;
-
-  // ── Row 1: allocated values ──────────────────────────────────────────
-  const trAlloc = document.createElement('tr');
-  trAlloc.className = 'border-b border-slate-100 cursor-pointer hover:bg-slate-50 transition-colors';
-
-  // Month label spans both rows — clicking navigates to /entry for that month
-  const tdLabel = document.createElement('td');
-  tdLabel.className = 'py-1 pr-4 font-medium text-slate-800 text-sm sticky left-0 bg-white align-middle';
-  tdLabel.rowSpan = 2;
-  tdLabel.textContent = monthLabel;
-  tdLabel.title = `Open ${monthLabel} in data entry`;
-  tdLabel.style.cursor = 'pointer';
-  tdLabel.addEventListener('click', () => {
-    window.location.href = `/entry?year=${m.year}&month=${m.month}`;
-  });
-  trAlloc.appendChild(tdLabel);
-
-  // Allocated value per bucket
-  buckets.forEach(b => {
-    const e  = byId[b.id];
-    const td = document.createElement('td');
-    td.className = 'py-1 px-2 text-right text-slate-600 text-xs';
-    td.textContent = e && e.allocated != null ? fmt(e.allocated) : '—';
-    trAlloc.appendChild(td);
-  });
-
-  // Allocated sum for this month
-  const allocSum = m.entries.reduce((s, e) => s + (e.allocated || 0), 0);
-  const tdAllocSum = document.createElement('td');
-  tdAllocSum.className = 'py-1 pl-4 text-right text-xs font-medium text-slate-700 border-l border-slate-200';
-  tdAllocSum.textContent = fmt(allocSum);
-  trAlloc.appendChild(tdAllocSum);
-
-  tbody.appendChild(trAlloc);
-
-  // ── Row 2: spent values ──────────────────────────────────────────────
-  const trSpent = document.createElement('tr');
-  trSpent.className = 'border-b border-slate-200';
-
-  // Spent value per bucket
-  buckets.forEach(b => {
-    const e  = byId[b.id];
-    const td = document.createElement('td');
-    td.className = 'py-1 px-2 text-right text-xs';
-
-    if (e && e.spent != null) {
-      td.className += ' text-slate-800';
-      td.textContent = fmt(e.spent);
-    } else {
-      td.className += ' text-slate-400';
-      td.textContent = '—';
-    }
-
-    trSpent.appendChild(td);
-  });
-
-  // Spent sum — show '—' if any bucket is still null (incomplete month)
-  const tdSpentSum = document.createElement('td');
-  tdSpentSum.className = 'py-1 pl-4 text-right text-xs font-medium border-l border-slate-200';
-
-  tdSpentSum.className += ' text-slate-800';
-  tdSpentSum.textContent = fmt(m.monthly_sum);
-
-  trSpent.appendChild(tdSpentSum);
-  tbody.appendChild(trSpent);
-}
-
-// ── Currency formatter ────────────────────────────────────────────────────
-function fmt(val) {
-  return '£' + Number(val).toLocaleString('en-GB', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-}
-
-// ── Pagination click handlers ─────────────────────────────────────────────
-// ← Older: go further back in history (increment offset)
+// ── Pagination handlers ────────────────────────────────────────────────────
 olderBtn.addEventListener('click', () => {
   if (!hasMore) return;
-  currentOffset++;
-  loadView();
+  currentOffset++; loadView();
 });
-
-// Newer →: come back towards the present (decrement offset)
 newerBtn.addEventListener('click', () => {
   if (currentOffset === 0) return;
-  currentOffset--;
-  loadView();
+  currentOffset--; loadView();
 });
 
-// ── Initial load ──────────────────────────────────────────────────────────
-// Load buckets first (needed for column headers), then load the table data.
+// ── Init ───────────────────────────────────────────────────────────────────
 loadBuckets()
-  .then(() => {
-    buildHeader();
-    loadView();
-  })
+  .then(() => { buildHeader(); loadView(); })
   .catch(err => {
     loading.classList.add('hidden');
     showError(err.message);

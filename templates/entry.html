@@ -1,314 +1,339 @@
 {% extends "base.html" %}
 
+{% block extra_head %}
+<style>
+  .entry-input {
+    width: 100%;
+    padding: 5px 8px;
+    border: 1px solid #89c2d9;
+    border-radius: 6px;
+    text-align: right;
+    font-size: 13px;
+    background: #fafafa;
+    font-variant-numeric: tabular-nums;
+    transition: border-color .15s, box-shadow .15s, background .15s;
+  }
+  .entry-input:focus {
+    outline: none;
+    border-color: #2a6f97;
+    background: white;
+    box-shadow: 0 0 0 3px rgba(42,111,151,.15);
+  }
+  .entry-input::-webkit-outer-spin-button,
+  .entry-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  .entry-input[type='number'] {
+    -moz-appearance: textfield;
+  }
+  .entry-row:hover td { background: #a9d6e5 !important; }
+  .tabnum { font-variant-numeric: tabular-nums; }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="bg-white rounded-2xl shadow-lg p-6">
+<div class="max-w-2xl mx-auto">
+  <div class="bg-white rounded-2xl shadow-lg overflow-hidden border border-[#89c2d9]">
 
-  <!-- Controls bar: year, month, autofill -->
-  <div class="flex flex-wrap items-end gap-4 mb-6">
-    <div>
-      <label class="block text-sm font-medium text-slate-700 mb-1">Year</label>
-      <select id="yearSelect" class="border border-slate-300 rounded-lg px-3 py-2 text-sm"></select>
+    <!-- ── Controls bar ── -->
+    <div class="bg-gradient-to-r from-[#013a63] to-[#012a4a] px-6 py-4">
+      <div class="flex flex-wrap items-center gap-3">
+
+        <!-- Month selector -->
+        <div class="flex flex-col gap-0.5">
+          <label class="text-[#89c2d9] text-xs font-medium">Month</label>
+          <select id="monthSelect"
+                  class="bg-white/15 hover:bg-white/25 text-white border border-white/30
+                         rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2
+                         focus:ring-white/50 cursor-pointer">
+          </select>
+        </div>
+
+        <!-- Year selector -->
+        <div class="flex flex-col gap-0.5">
+          <label class="text-[#89c2d9] text-xs font-medium">Year</label>
+          <select id="yearSelect"
+                  class="bg-white/15 hover:bg-white/25 text-white border border-white/30
+                         rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2
+                         focus:ring-white/50 cursor-pointer">
+          </select>
+        </div>
+
+        <!-- Autofill -->
+        <button id="autofillBtn"
+                class="mt-4 px-4 py-1.5 bg-white/15 hover:bg-white/25 text-white
+                       border border-white/30 rounded-lg text-sm font-medium transition">
+          ↺ Autofill
+        </button>
+
+        <!-- Spacer -->
+        <div class="flex-1"></div>
+
+        <!-- Page label -->
+        <div class="mt-4 text-white/70 text-xs text-right hidden sm:block">
+          Blank spent = not yet entered
+        </div>
+      </div>
     </div>
-    <div>
-      <label class="block text-sm font-medium text-slate-700 mb-1">Month</label>
-      <select id="monthSelect" class="border border-slate-300 rounded-lg px-3 py-2 text-sm"></select>
+
+    <!-- ── Loading / error ── -->
+    <div id="loadingMsg" class="text-[#468faf] py-12 text-center text-sm">
+      Loading entries…
     </div>
-    <button id="autofillBtn"
-            class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 text-sm font-medium rounded-lg transition">
-      Autofill
-    </button>
-  </div>
+    <div id="errorMsg"
+         class="hidden mx-6 mt-4 px-4 py-3 rounded-lg bg-red-50 border border-red-200
+                text-red-700 text-sm"></div>
 
-  <!-- Loading / error states -->
-  <div id="loadingMsg" class="text-slate-500 py-8 text-center">Loading entries…</div>
-  <div id="errorMsg"
-       class="hidden mb-4 px-4 py-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm"></div>
+    <!-- ── Entry form ── -->
+    <form id="entryForm" class="hidden">
+      <table class="w-full table-fixed text-sm">
 
-  <!-- Entry form (hidden until data loads) -->
-  <form id="entryForm" class="hidden">
-    <table class="w-full text-sm">
-      <thead>
-        <tr class="border-b border-slate-200 text-slate-500 text-xs uppercase tracking-wider">
-          <th class="text-left py-2 pr-4">Bucket</th>
-          <th class="text-right py-2 px-2 w-36">Allocated £</th>
-          <th class="text-right py-2 pl-2 w-36">Spent £</th>
-        </tr>
-      </thead>
-      <tbody id="entriesBody"></tbody>
-      <tfoot>
-        <tr class="border-t-2 border-slate-300 bg-slate-50 font-medium text-sm">
-          <td class="py-3 pr-4 text-slate-700">Monthly total</td>
-          <td class="py-3 px-2 text-right text-slate-900 tabular-nums" id="totalAlloc">—</td>
-          <td class="py-3 pl-2 text-right text-slate-500 tabular-nums" id="totalSpent">—</td>
-        </tr>
-      </tfoot>
-    </table>
+        <colgroup>
+          <col>             <!-- bucket name: auto -->
+          <col class="w-32"> <!-- allocated -->
+          <col class="w-32"> <!-- spent -->
+        </colgroup>
 
-    <!-- Save button + success message -->
-    <div class="mt-6 flex gap-3 items-center">
-      <button type="submit"
-              class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white
-                     font-medium rounded-lg text-sm transition">
-        Save
-      </button>
-      <div id="saveMsg" class="hidden text-sm text-emerald-600">✓ Saved successfully.</div>
-    </div>
-  </form>
+        <thead>
+          <tr>
+            <th class="text-left py-3 pl-6 pr-4 text-xs font-semibold uppercase
+                       tracking-wider text-[#468faf] bg-[#a9d6e5]/30 border-b border-[#89c2d9]">
+              Bucket
+            </th>
+            <th class="py-3 px-3 text-right text-xs font-semibold uppercase
+                       tracking-wider text-[#01497c] bg-[#a9d6e5]
+                       border-b border-l border-[#89c2d9]">
+              Allocated £
+            </th>
+            <th class="py-3 pl-3 pr-6 text-right text-xs font-semibold uppercase
+                       tracking-wider text-[#2a6f97] bg-[#89c2d9]
+                       border-b border-l border-[#89c2d9]">
+              Spent £
+            </th>
+          </tr>
+        </thead>
 
-</div>
+        <tbody id="entriesBody"></tbody>
+
+        <tfoot>
+          <tr class="bg-[#012a4a]">
+            <td class="py-3 pl-6 pr-4 text-sm font-semibold text-[#89c2d9] uppercase
+                       tracking-wide text-xs">
+              Monthly total
+            </td>
+            <td class="py-3 px-3 text-right text-sm font-bold text-[#61a5c2]
+                       tabnum border-l border-[#013a63]">
+              <span id="totalAlloc">—</span>
+            </td>
+            <td class="py-3 pl-3 pr-6 text-right text-sm font-bold text-[#89c2d9]
+                       tabnum border-l border-[#013a63]">
+              <span id="totalSpent">—</span>
+            </td>
+          </tr>
+        </tfoot>
+      </table>
+
+      <!-- ── Save area ── -->
+      <div class="flex items-center gap-4 px-6 py-4 bg-[#a9d6e5]/20 border-t border-[#89c2d9]">
+        <button type="submit"
+                class="px-6 py-2.5 bg-[#01497c] hover:bg-[#013a63] active:bg-[#012a4a]
+                       text-white font-semibold rounded-lg text-sm transition shadow-sm">
+          Save changes
+        </button>
+        <div id="saveMsg"
+             class="hidden text-sm text-emerald-600 font-medium flex items-center gap-1.5">
+          <span class="text-base">✓</span> Saved successfully.
+        </div>
+      </div>
+
+    </form>
+  </div><!-- end card -->
+</div><!-- end max-w -->
 {% endblock %}
 
 {% block extra_scripts %}
 <script>
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
-// DOM references
-const yearSel    = document.getElementById('yearSelect');
-const monthSel   = document.getElementById('monthSelect');
+const yearSel     = document.getElementById('yearSelect');
+const monthSel    = document.getElementById('monthSelect');
 const autofillBtn = document.getElementById('autofillBtn');
-const form       = document.getElementById('entryForm');
-const tbody      = document.getElementById('entriesBody');
-const loading    = document.getElementById('loadingMsg');
-const errorMsg   = document.getElementById('errorMsg');
-const saveMsg    = document.getElementById('saveMsg');
-const totalAlloc = document.getElementById('totalAlloc');
-const totalSpent = document.getElementById('totalSpent');
+const form        = document.getElementById('entryForm');
+const tbody       = document.getElementById('entriesBody');
+const loading     = document.getElementById('loadingMsg');
+const errorMsg    = document.getElementById('errorMsg');
+const saveMsg     = document.getElementById('saveMsg');
+const totalAlloc  = document.getElementById('totalAlloc');
+const totalSpent  = document.getElementById('totalSpent');
 
-// ── Auth ──────────────────────────────────────────────────────────────────
-function token() { return localStorage.getItem('token'); }
-
+function token()      { return localStorage.getItem('token'); }
 function apiHeaders() {
-  return {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${token()}`,
-  };
+  return { 'Content-Type':'application/json', 'Authorization':`Bearer ${token()}` };
 }
+function showError(msg) { errorMsg.textContent = msg; errorMsg.classList.remove('hidden'); }
+function hideError()    { errorMsg.classList.add('hidden'); }
 
-// ── Error helpers ─────────────────────────────────────────────────────────
-function showError(msg) {
-  errorMsg.textContent = msg;
-  errorMsg.classList.remove('hidden');
-}
-
-function hideError() {
-  errorMsg.classList.add('hidden');
-}
-
-// ── Populate year/month selectors ─────────────────────────────────────────
+// ── Populate selectors ─────────────────────────────────────────────────────
 const now      = new Date();
 const curYear  = now.getFullYear();
 const curMonth = now.getMonth() + 1;
 
-for (let y = curYear + 1; y >= curYear - 5; y--) {
-  const opt = document.createElement('option');
-  opt.value = y;
-  opt.textContent = y;
-  if (y === curYear) opt.selected = true;
-  yearSel.appendChild(opt);
+for (let y = 2030; y >= curYear - 5; y--) {
+  const o = document.createElement('option');
+  o.value = y; o.textContent = y;
+  if (y === curYear) o.selected = true;
+  yearSel.appendChild(o);
 }
-
 MONTHS.forEach((m, i) => {
-  const opt = document.createElement('option');
-  opt.value = i + 1;
-  opt.textContent = m;
-  if (i + 1 === curMonth) opt.selected = true;
-  monthSel.appendChild(opt);
+  const o = document.createElement('option');
+  o.value = i + 1; o.textContent = m;
+  if (i + 1 === curMonth) o.selected = true;
+  monthSel.appendChild(o);
 });
 
-// ── Monthly total ─────────────────────────────────────────────────────────
-// Recalculates from all inputs without any API call.
-// Called after every keystroke and after autofill/load.
-function updateTotal() {
-  const allocInputs = tbody.querySelectorAll('input[data-field="allocated"]');
-  const spentInputs = tbody.querySelectorAll('input[data-field="spent"]');
-
-  let allocSum = 0;
-  let spentSum = 0;
-
-  // Blank inputs treated as 0 in both columns
-  allocInputs.forEach(inp => { allocSum += parseFloat(inp.value) || 0; });
-  spentInputs.forEach(inp => { spentSum += parseFloat(inp.value) || 0; });
-
-  totalAlloc.textContent = '£' + allocSum.toLocaleString('en-GB', {
-    minimumFractionDigits: 2, maximumFractionDigits: 2,
-  });
-  totalSpent.textContent = '£' + spentSum.toLocaleString('en-GB', {
-    minimumFractionDigits: 2, maximumFractionDigits: 2,
+// ── Monthly total ──────────────────────────────────────────────────────────
+function fmt(val) {
+  return '£' + Number(val).toLocaleString('en-GB', {
+    minimumFractionDigits: 2, maximumFractionDigits: 2
   });
 }
 
-// ── Load entries for selected month ───────────────────────────────────────
+function updateTotal() {
+  let allocSum = 0, spentSum = 0;
+  tbody.querySelectorAll('input[data-field="allocated"]')
+       .forEach(i => { allocSum += parseFloat(i.value) || 0; });
+  tbody.querySelectorAll('input[data-field="spent"]')
+       .forEach(i => { spentSum += parseFloat(i.value) || 0; });
+  totalAlloc.textContent = fmt(allocSum);
+  totalSpent.textContent = fmt(spentSum);
+}
+
+// ── Load entries ───────────────────────────────────────────────────────────
 async function loadEntries() {
   hideError();
   loading.classList.remove('hidden');
   form.classList.add('hidden');
 
-  const year  = yearSel.value;
-  const month = monthSel.value;
-
   try {
-    const res = await fetch(`/api/entry?year=${year}&month=${month}`, {
-      headers: apiHeaders(),
-    });
-
-    if (!res.ok) {
-      if (res.status === 401) { window.location.href = '/login'; return; }
-      throw new Error(`Server error ${res.status}`);
-    }
-
-    const rows = await res.json();
-    renderEntries(rows);
+    const res = await fetch(
+      `/api/entry?year=${yearSel.value}&month=${monthSel.value}`,
+      { headers: apiHeaders() }
+    );
+    if (!res.ok) { if (res.status === 401) { location.href='/login'; return; }
+                   throw new Error(`Server error ${res.status}`); }
+    renderEntries(await res.json());
     loading.classList.add('hidden');
     form.classList.remove('hidden');
-
-  } catch (err) {
+  } catch(err) {
     loading.classList.add('hidden');
     showError(err.message);
   }
 }
 
-// ── Render the 14-row form ────────────────────────────────────────────────
+// ── Render 14-row form ─────────────────────────────────────────────────────
 function renderEntries(rows) {
   tbody.innerHTML = '';
-
-  rows.forEach(row => {
+  rows.forEach((row, idx) => {
     const tr = document.createElement('tr');
-    tr.className = 'border-b border-slate-100';
+    tr.className = 'entry-row border-b border-[#89c2d9]/50 transition-colors';
+    const bg = idx % 2 === 0 ? 'bg-white' : 'bg-[#a9d6e5]/20';
 
     // Bucket name
     const nameTd = document.createElement('td');
-    nameTd.className = 'py-2 pr-4 text-slate-800';
+    nameTd.className = `py-2 pl-6 pr-4 text-[#013a63] text-sm ${bg}`;
     nameTd.textContent = row.display_name;
 
     // Allocated input
     const allocTd = document.createElement('td');
-    allocTd.className = 'py-2 px-2';
-    const allocInput = document.createElement('input');
-    allocInput.type = 'number';
-    allocInput.step = '0.01';
-    allocInput.min  = '0';
-    allocInput.dataset.bucketId = row.bucket_id;
-    allocInput.dataset.field    = 'allocated';
-    allocInput.className = 'w-full border border-slate-300 rounded px-2 py-1.5 text-right text-sm';
-    allocInput.value = row.allocated != null ? row.allocated : '';
-    allocInput.addEventListener('input', updateTotal);   // live total update
-    allocTd.appendChild(allocInput);
+    allocTd.className = `py-1.5 px-3 border-l border-[#89c2d9]/50 ${bg}`;
+    const allocInp = makeInput(row.bucket_id, 'allocated', row.allocated);
+    allocTd.appendChild(allocInp);
 
     // Spent input
     const spentTd = document.createElement('td');
-    spentTd.className = 'py-2 pl-2';
-    const spentInput = document.createElement('input');
-    spentInput.type = 'number';
-    spentInput.step = '0.01';
-    spentInput.min  = '0';
-    spentInput.dataset.bucketId = row.bucket_id;
-    spentInput.dataset.field    = 'spent';
-    spentInput.className = 'w-full border border-slate-300 rounded px-2 py-1.5 text-right text-sm';
-    spentInput.value = row.spent != null ? row.spent : '';
-    spentInput.addEventListener('input', updateTotal);   // live total update
-    spentTd.appendChild(spentInput);
+    spentTd.className = `py-1.5 pl-3 pr-6 border-l border-[#89c2d9]/50 ${bg}`;
+    const spentInp = makeInput(row.bucket_id, 'spent', row.spent);
+    spentTd.appendChild(spentInp);
 
     tr.appendChild(nameTd);
     tr.appendChild(allocTd);
     tr.appendChild(spentTd);
     tbody.appendChild(tr);
   });
-
-  updateTotal();   // set totals from loaded values immediately
+  updateTotal();
 }
 
-// ── Collect form values for save ──────────────────────────────────────────
-// Blank spent → null (not entered), not 0
-function collectEntries() {
-  const inputs = tbody.querySelectorAll('input');
-  const map = {};
+function makeInput(bucketId, field, value) {
+  const inp = document.createElement('input');
+  inp.type = 'number'; inp.step = '0.01'; inp.min = '0';
+  inp.dataset.bucketId = bucketId;
+  inp.dataset.field    = field;
+  inp.className        = 'entry-input';
+  inp.value            = value != null ? value : '';
+  inp.addEventListener('input', updateTotal);
+  return inp;
+}
 
-  inputs.forEach(inp => {
+// ── Collect for save ───────────────────────────────────────────────────────
+function collectEntries() {
+  const map = {};
+  tbody.querySelectorAll('input').forEach(inp => {
     const id = inp.dataset.bucketId;
     if (!map[id]) map[id] = { bucket_id: parseInt(id), allocated: null, spent: null };
-    const val = inp.value.trim();
-    map[id][inp.dataset.field] = val === '' ? null : parseFloat(val);
+    const v = inp.value.trim();
+    map[id][inp.dataset.field] = v === '' ? null : parseFloat(v);
   });
-
   return Object.values(map);
 }
 
-// ── Save ──────────────────────────────────────────────────────────────────
-form.addEventListener('submit', async (e) => {
+// ── Save ───────────────────────────────────────────────────────────────────
+form.addEventListener('submit', async e => {
   e.preventDefault();
-  hideError();
-  saveMsg.classList.add('hidden');
-
-  const year    = parseInt(yearSel.value);
-  const month   = parseInt(monthSel.value);
-  const entries = collectEntries();
-
+  hideError(); saveMsg.classList.add('hidden');
   try {
     const res = await fetch('/api/entry', {
-      method: 'POST',
-      headers: apiHeaders(),
-      body: JSON.stringify({ year, month, entries }),
+      method: 'POST', headers: apiHeaders(),
+      body: JSON.stringify({
+        year: parseInt(yearSel.value), month: parseInt(monthSel.value),
+        entries: collectEntries()
+      })
     });
-
-    if (!res.ok) {
-      if (res.status === 401) { window.location.href = '/login'; return; }
-      throw new Error(`Save failed (${res.status})`);
-    }
-
+    if (!res.ok) { if (res.status===401) { location.href='/login'; return; }
+                   throw new Error(`Save failed (${res.status})`); }
     saveMsg.classList.remove('hidden');
     setTimeout(() => saveMsg.classList.add('hidden'), 2500);
-
-  } catch (err) {
-    showError(err.message);
-  }
+  } catch(err) { showError(err.message); }
 });
 
-// ── Autofill ──────────────────────────────────────────────────────────────
-// Copies previous month's allocated values into the allocated inputs only.
-// Does not write to the database — user still clicks Save to persist.
+// ── Autofill ───────────────────────────────────────────────────────────────
 autofillBtn.addEventListener('click', async () => {
   hideError();
-  const year  = parseInt(yearSel.value);
-  const month = parseInt(monthSel.value);
-
   try {
     const res = await fetch('/api/entry/autofill', {
-      method: 'POST',
-      headers: apiHeaders(),
-      body: JSON.stringify({ year, month }),
+      method: 'POST', headers: apiHeaders(),
+      body: JSON.stringify({ year: parseInt(yearSel.value), month: parseInt(monthSel.value) })
     });
-
-    if (!res.ok) {
-      if (res.status === 401) { window.location.href = '/login'; return; }
-      throw new Error(`Autofill failed (${res.status})`);
-    }
-
+    if (!res.ok) { if (res.status===401) { location.href='/login'; return; }
+                   throw new Error(`Autofill failed (${res.status})`); }
     const rows   = await res.json();
-    const inputs = tbody.querySelectorAll('input[data-field="allocated"]');
     const lookup = {};
     rows.forEach(r => { lookup[r.bucket_id] = r.allocated; });
-
-    inputs.forEach(inp => {
-      const val = lookup[parseInt(inp.dataset.bucketId)];
-      inp.value = val != null ? val : '';
+    tbody.querySelectorAll('input[data-field="allocated"]').forEach(inp => {
+      const v = lookup[parseInt(inp.dataset.bucketId)];
+      inp.value = v != null ? v : '';
     });
-
-    updateTotal();   // recalculate total after autofill
-
-  } catch (err) {
-    showError(err.message);
-  }
+    updateTotal();
+  } catch(err) { showError(err.message); }
 });
 
-// ── Month/year selector change ────────────────────────────────────────────
 yearSel.addEventListener('change', loadEntries);
 monthSel.addEventListener('change', loadEntries);
 
-// ── Initial load ──────────────────────────────────────────────────────────
-// Check URL params first — /entry?year=2025&month=5 pre-selects that month
-const params = new URLSearchParams(window.location.search);
-if (params.get('year'))  yearSel.value  = params.get('year');
-if (params.get('month')) monthSel.value = params.get('month');
+// Pre-select from URL params if present
+const p = new URLSearchParams(location.search);
+if (p.get('year'))  yearSel.value  = p.get('year');
+if (p.get('month')) monthSel.value = p.get('month');
 
 loadEntries();
 </script>
