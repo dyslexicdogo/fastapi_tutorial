@@ -31,17 +31,17 @@ async def root():
 
 @app.get("/login")
 async def login_page(request: Request):
-    return templates.TemplateResponse("login.html", {"request": request})
+    return templates.TemplateResponse(request, "login.html", {"request": request})
 
 
 @app.get("/entry")
 async def entry_page(request: Request):
-    return templates.TemplateResponse("entry.html", {"request": request, "title": "Budget Entry"})
+    return templates.TemplateResponse(request, "entry.html", {"request": request, "title": "Budget Entry"})
 
 
 @app.get("/view")
 async def view_page(request: Request):
-    return templates.TemplateResponse("view.html", {"request": request, "title": "Budget View"})
+    return templates.TemplateResponse(request, "view.html", {"request": request, "title": "Budget View"})
 
 @app.get("/logout")
 async def logout():
