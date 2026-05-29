@@ -90,12 +90,9 @@ def get_previous_month_allocated(year: int, month: int) -> List[dict]:
 
 def get_view_data(offset: int = 0) -> dict:
     """
-    Fetch 12 months of entry data for the view table.
-    offset=0 → most recent 12 months
-    offset=1 → months 13-24 ago, etc.
-
-    monthly_sum is None if any bucket's spent is NULL for that month
-    (can't calculate a complete sum from incomplete data).
+    Fetch 10 months of entry data for the view table.
+    offset=0 → most recent 10 months
+    offset=1 → months 11-20 ago, etc.
 
     has_more is True if there are entries older than the current page.
     """
@@ -103,17 +100,17 @@ def get_view_data(offset: int = 0) -> dict:
     cur  = conn.cursor()
 
     # Step 1: find which months have data, paginated
-    # We fetch 13 rows but only return 12 — the 13th tells us has_more
+    # We fetch 11 rows but only return 10 — the 11th tells us has_more
     cur.execute("""
         SELECT DISTINCT year, month
         FROM monthly_entries
         ORDER BY year DESC, month DESC
-        LIMIT 13 OFFSET ?
-    """, (offset * 12,))
+        LIMIT 11 OFFSET ?
+    """, (offset * 10,))
 
     month_keys = cur.fetchall()
-    has_more   = len(month_keys) == 13
-    month_keys = month_keys[:12]   # trim back to 12
+    has_more   = len(month_keys) == 11
+    month_keys = month_keys[:10]   # trim back to 10
 
     if not month_keys:
         conn.close()

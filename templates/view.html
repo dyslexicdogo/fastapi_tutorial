@@ -26,6 +26,8 @@
              letter-spacing: .04em; }
   .type-s { color: #2a6f97; font-size: 10px; font-weight: 600;
              letter-spacing: .04em; }
+  .type-d { color: #6b21a8; font-size: 10px; font-weight: 600;
+             letter-spacing: .04em; }
 
   /* Month cell hover */
   .month-link:hover { color: #01497c; text-decoration: underline; cursor: pointer; }
@@ -242,7 +244,7 @@ function buildRolloverRow() {
   tbody.appendChild(tr);
 }
 
-// ── Render one month as two rows (allocated + spent) ──────────────────────
+// ── Render one month as three rows (allocated, spent, difference) ─────────
 function renderMonth(m, isEven) {
   const byId  = {};
   m.entries.forEach(e => { byId[e.bucket_id] = e; });
@@ -256,15 +258,15 @@ function renderMonth(m, isEven) {
   trA.className = 'border-b border-[#89c2d9]/40';
   trA.style.background = rowBg;
   trA.onmouseenter = () => {
-    [trA, trS].forEach(r => r.style.background = rowBgHover);
+    [trA, trS, trD].forEach(r => r.style.background = rowBgHover);
   };
   trA.onmouseleave = () => {
-    [trA, trS].forEach(r => r.style.background = rowBg);
+    [trA, trS, trD].forEach(r => r.style.background = rowBg);
   };
 
-  // Month label — rowSpan=2, spans allocated + spent rows
+  // Month label — rowSpan=3, spans allocated / spent / difference rows
   const tdMonth = document.createElement('td');
-  tdMonth.rowSpan = 2;
+  tdMonth.rowSpan = 3;
   tdMonth.className = 'py-2 px-3 font-semibold text-[#013a63] text-sm sticky left-0 z-10 align-middle month-link';
   tdMonth.style.background = rowBg;
   tdMonth.textContent = monthLabel;
@@ -302,10 +304,10 @@ function renderMonth(m, isEven) {
   trS.className = 'border-b border-[#89c2d9]/60';
   trS.style.background = rowBg;
   trS.onmouseenter = () => {
-    [trA, trS].forEach(r => r.style.background = rowBgHover);
+    [trA, trS, trD].forEach(r => r.style.background = rowBgHover);
   };
   trS.onmouseleave = () => {
-    [trA, trS].forEach(r => r.style.background = rowBg);
+    [trA, trS, trD].forEach(r => r.style.background = rowBg);
   };
 
   // Type badge — "S" for spent
@@ -329,20 +331,56 @@ function renderMonth(m, isEven) {
     trS.appendChild(td);
   });
 
-  // Monthly sum (net saving = allocated - spent)
+  // Spent sum
+  const spentSum = m.entries.reduce((s,e) => s + (e.spent || 0), 0);
   const tdSSum = document.createElement('td');
   tdSSum.className = 'py-1.5 px-3 text-right text-xs font-bold tabnum border-l border-[#89c2d9]';
-  if (m.monthly_sum != null) {
-    tdSSum.style.color = m.monthly_sum >= 0 ? '#15803d' : '#dc2626'; // green / red
-    tdSSum.textContent = fmt(m.monthly_sum);
-  } else {
-    tdSSum.className += ' text-[#89c2d9]';
-    tdSSum.textContent = '—';
-  }
+  tdSSum.style.color = '#013a63';
+  tdSSum.textContent = fmt(spentSum);
   trS.appendChild(tdSSum);
+
+  // ── Row 3: difference (allocated - spent) ──────────────────────────────
+  const trD = document.createElement('tr');
+  trD.className = 'border-b border-[#89c2d9]/40';
+  trD.style.background = rowBg;
+  trD.onmouseenter = () => {
+    [trA, trS, trD].forEach(r => r.style.background = rowBgHover);
+  };
+  trD.onmouseleave = () => {
+    [trA, trS, trD].forEach(r => r.style.background = rowBg);
+  };
+
+  const tdTypeD = document.createElement('td');
+  tdTypeD.className = 'py-1.5 px-1 text-center sticky left-[90px] z-10';
+  tdTypeD.style.background = rowBg;
+  tdTypeD.innerHTML = '<span class="type-d">D</span>';
+  trD.appendChild(tdTypeD);
+
+  buckets.forEach(b => {
+    const e  = byId[b.id];
+    const td = document.createElement('td');
+    td.className = 'py-1.5 px-2 text-right text-xs font-medium tabnum';
+    if (e && (e.allocated != null || e.spent != null)) {
+      const diff = (e.allocated || 0) - (e.spent || 0);
+      td.style.color = diff >= 0 ? '#15803d' : '#dc2626';
+      td.textContent = fmt(diff);
+    } else {
+      td.className += ' text-[#89c2d9]';
+      td.textContent = '—';
+    }
+    trD.appendChild(td);
+  });
+
+  const totalDiff = m.entries.reduce((s, e) => s + ((e.allocated || 0) - (e.spent || 0)), 0);
+  const tdDSum = document.createElement('td');
+  tdDSum.className = 'py-1.5 px-3 text-right text-xs font-bold tabnum border-l border-[#89c2d9]';
+  tdDSum.style.color = totalDiff >= 0 ? '#15803d' : '#dc2626';
+  tdDSum.textContent = fmt(totalDiff);
+  trD.appendChild(tdDSum);
 
   tbody.appendChild(trA);
   tbody.appendChild(trS);
+  tbody.appendChild(trD);
 }
 
 // ── Pagination state ───────────────────────────────────────────────────────
