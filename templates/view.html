@@ -147,7 +147,10 @@ async function loadBuckets() {
   }
   const data = await res.json();
   buckets = data.map(r => ({
-    id: r.bucket_id, name: r.display_name, balance: r.cumulative_balance
+    id: r.bucket_id, name: r.display_name,
+    total_allocated: r.total_allocated,
+    total_spent: r.total_spent,
+    total_rollover: r.total_allocated - r.total_spent
   }));
 }
 
@@ -205,43 +208,80 @@ function buildHeader() {
   thead.appendChild(tr2);
 }
 
-// ── Build rollover row (pinned at top of tbody) ────────────────────────────
+// ── Build rollover summary rows (pinned at top of tbody) ────────────────────
 function buildRolloverRow() {
-  // ── Allocated row (shows cumulative balance per bucket)
-  const tr = document.createElement('tr');
-  tr.className = 'border-b-2 border-[#89c2d9]';
-  tr.style.background = '#a9d6e5';
+  const rowBg = '#a9d6e5';
 
-  // Month label cell
-  const tdLabel = document.createElement('td');
-  tdLabel.rowSpan = 1;
-  tdLabel.className = 'py-2.5 px-3 text-xs font-bold text-[#012a4a] uppercase tracking-wider sticky left-0 z-10';
-  tdLabel.style.background = '#a9d6e5';
-  tdLabel.textContent = 'Rollover';
-  tr.appendChild(tdLabel);
-
-  // Type badge
-  const tdType = document.createElement('td');
-  tdType.className = 'py-2.5 px-1 sticky left-[90px] z-10';
-  tdType.style.background = '#a9d6e5';
-  tr.appendChild(tdType);
-
-  // Balance per bucket
-  const grandTotal = buckets.reduce((s,b) => s + b.balance, 0);
-  buckets.forEach(b => {
+  function tdLabel(rowSpan, text) {
     const td = document.createElement('td');
-    td.className = 'py-2.5 px-2 text-right text-xs font-semibold text-[#013a63] tabnum';
-    td.textContent = fmt(b.balance);
-    tr.appendChild(td);
+    td.rowSpan = rowSpan;
+    td.className = 'py-2 px-3 text-xs font-bold text-[#012a4a] uppercase tracking-wider sticky left-0 z-10';
+    td.style.background = rowBg;
+    td.textContent = text;
+    return td;
+  }
+
+  function tdType(rowSpan, html) {
+    const td = document.createElement('td');
+    td.rowSpan = rowSpan;
+    td.className = 'py-1.5 px-1 text-center sticky left-[90px] z-10';
+    td.style.background = rowBg;
+    td.innerHTML = html;
+    return td;
+  }
+
+  function tdVal(value, cls) {
+    const td = document.createElement('td');
+    td.className = 'py-1.5 px-2 text-right text-xs tabnum' + (cls ? ' ' + cls : '');
+    td.textContent = fmt(value);
+    return td;
+  }
+
+  function tdSum(value, cls) {
+    const td = document.createElement('td');
+    td.className = 'py-1.5 px-3 text-right text-xs tabnum border-l border-[#89c2d9]' + (cls ? ' ' + cls : '');
+    td.textContent = fmt(value);
+    return td;
+  }
+
+  // ── Row A: Total allocated ────────────────────────────────────────────
+  const trA = document.createElement('tr');
+  trA.className = 'border-b border-[#89c2d9]/40';
+  trA.style.background = rowBg;
+  trA.appendChild(tdLabel(3, 'Total'));
+  trA.appendChild(tdType(3, '<span class="type-a">A</span>'));
+  buckets.forEach(b => trA.appendChild(tdVal(b.total_allocated, 'text-[#468faf]')));
+  trA.appendChild(tdSum(
+    buckets.reduce((s, b) => s + b.total_allocated, 0),
+    'text-[#468faf] font-medium'
+  ));
+  tbody.appendChild(trA);
+
+  // ── Row S: Total spent ────────────────────────────────────────────────
+  const trS = document.createElement('tr');
+  trS.className = 'border-b border-[#89c2d9]/60';
+  trS.style.background = rowBg;
+  buckets.forEach(b => trS.appendChild(tdVal(b.total_spent, 'text-[#013a63] font-medium')));
+  trS.appendChild(tdSum(
+    buckets.reduce((s, b) => s + b.total_spent, 0),
+    'text-[#013a63] font-bold'
+  ));
+  tbody.appendChild(trS);
+
+  // ── Row D: Difference (rollover) ──────────────────────────────────────
+  const trD = document.createElement('tr');
+  trD.className = 'border-b-2 border-[#89c2d9]';
+  trD.style.background = rowBg;
+  buckets.forEach(b => {
+    const td = tdVal(b.total_rollover, 'font-medium');
+    td.style.color = b.total_rollover >= 0 ? '#15803d' : '#dc2626';
+    trD.appendChild(td);
   });
-
-  // Grand total
-  const tdSum = document.createElement('td');
-  tdSum.className = 'py-2.5 px-3 text-right text-xs font-bold text-[#012a4a] tabnum border-l border-[#89c2d9]';
-  tdSum.textContent = fmt(grandTotal);
-  tr.appendChild(tdSum);
-
-  tbody.appendChild(tr);
+  const totalRollover = buckets.reduce((s, b) => s + b.total_rollover, 0);
+  const tdDRow = tdSum(totalRollover, 'font-bold');
+  tdDRow.style.color = totalRollover >= 0 ? '#15803d' : '#dc2626';
+  trD.appendChild(tdDRow);
+  tbody.appendChild(trD);
 }
 
 // ── Render one month as three rows (allocated, spent, difference) ─────────

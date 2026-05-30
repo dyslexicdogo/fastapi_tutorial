@@ -175,19 +175,20 @@ def get_view_data(offset: int = 0) -> dict:
 
 def get_rollover() -> List[dict]:
     """
-    Fetch cumulative all-time balance per bucket from the v_rollover view.
-    Joins with buckets to include display_name in the response.
+    Fetch all-time allocated and spent totals per bucket.
     """
     conn = get_connection()
     cur  = conn.cursor()
 
     cur.execute("""
         SELECT
-            b.id           AS bucket_id,
+            b.id                                               AS bucket_id,
             b.display_name,
-            COALESCE(vr.cumulative_balance, 0) AS cumulative_balance
+            COALESCE(SUM(me.allocated), 0)                     AS total_allocated,
+            COALESCE(SUM(COALESCE(me.spent, 0)), 0)            AS total_spent
         FROM buckets b
-        LEFT JOIN v_rollover vr ON vr.bucket_id = b.id
+        LEFT JOIN monthly_entries me ON me.bucket_id = b.id
+        GROUP BY b.id, b.display_name
         ORDER BY b.sort_order
     """)
 

@@ -49,10 +49,11 @@ class ViewResponse(BaseModel):
 # ── Rollover schemas ───────────────────────────────────────────────────────
 
 class RolloverRow(BaseModel):
-    """One bucket's cumulative all-time balance."""
-    bucket_id:          int
-    display_name:       str
-    cumulative_balance: float
+    """One bucket's all-time totals."""
+    bucket_id:       int
+    display_name:    str
+    total_allocated: float
+    total_spent:     float
 
 
 class BucketAvgSpent(BaseModel):
