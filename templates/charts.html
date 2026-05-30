@@ -2,17 +2,21 @@
 
 {% block content %}
 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-  <div class="bg-white rounded-2xl shadow-lg border border-[#89c2d9] p-6 h-64">
-    <canvas id="chart1"></canvas>
+  <div class="bg-white rounded-2xl shadow-lg border border-[#89c2d9] p-6 h-64 flex flex-col">
+    <div class="text-[#01497c] font-semibold text-sm mb-2">Cumulative Rollover</div>
+    <div class="flex-1 min-h-0"><canvas id="chart1"></canvas></div>
   </div>
-  <div class="bg-white rounded-2xl shadow-lg border border-[#89c2d9] p-6 h-64">
-    <canvas id="chart2"></canvas>
+  <div class="bg-white rounded-2xl shadow-lg border border-[#89c2d9] p-6 h-64 flex flex-col">
+    <div class="text-[#01497c] font-semibold text-sm mb-2">Monthly Spending</div>
+    <div class="flex-1 min-h-0"><canvas id="chart2"></canvas></div>
   </div>
-  <div class="bg-white rounded-2xl shadow-lg border border-[#89c2d9] p-6 h-64">
-    <svg id="chart3" width="100%" height="100%"></svg>
+  <div class="bg-white rounded-2xl shadow-lg border border-[#89c2d9] p-6 h-64 flex flex-col">
+    <div class="text-[#01497c] font-semibold text-sm mb-2">Spending by Category</div>
+    <div class="flex-1 min-h-0"><svg id="chart3" width="100%" height="100%"></svg></div>
   </div>
-  <div class="bg-white rounded-2xl shadow-lg border border-[#89c2d9] p-6 h-64">
-    <svg id="chart4" width="100%" height="100%"></svg>
+  <div class="bg-white rounded-2xl shadow-lg border border-[#89c2d9] p-6 h-64 flex flex-col">
+    <div class="text-[#01497c] font-semibold text-sm mb-2">Budget Flow</div>
+    <div class="flex-1 min-h-0"><svg id="chart4" width="100%" height="100%"></svg></div>
   </div>
 </div>
 {% endblock %}
