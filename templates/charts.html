@@ -2,22 +2,63 @@
 
 {% block content %}
 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-  <div class="bg-white rounded-2xl shadow-lg border border-[#89c2d9] p-6 h-64 flex flex-col">
-    <div class="text-[#01497c] font-semibold text-sm mb-2">Cumulative Rollover</div>
-    <div class="flex-1 min-h-0"><canvas id="chart1"></canvas></div>
+
+  <!-- Cumulative Rollover -->
+  <div class="bg-white rounded-2xl shadow-lg border border-slate-100 flex flex-col overflow-hidden h-80">
+    <div class="flex items-center gap-3 px-5 py-3 border-b border-slate-100 bg-gradient-to-r from-[#01497c]/5 to-transparent">
+      <div class="w-7 h-7 rounded-lg bg-[#01497c] flex items-center justify-center flex-shrink-0">
+        <i class="fas fa-piggy-bank text-white text-xs"></i>
+      </div>
+      <div>
+        <div class="text-[#01497c] font-bold text-sm leading-tight">Cumulative Rollover</div>
+        <div class="text-slate-400 text-xs">Running balance over time</div>
+      </div>
+    </div>
+    <div class="flex-1 min-h-0 p-4"><canvas id="chart1"></canvas></div>
   </div>
-  <div class="bg-white rounded-2xl shadow-lg border border-[#89c2d9] p-6 h-64 flex flex-col">
-    <div class="text-[#01497c] font-semibold text-sm mb-2">Monthly Spending</div>
-    <div class="flex-1 min-h-0"><canvas id="chart2"></canvas></div>
+
+  <!-- Monthly Spending -->
+  <div class="bg-white rounded-2xl shadow-lg border border-slate-100 flex flex-col overflow-hidden h-80">
+    <div class="flex items-center gap-3 px-5 py-3 border-b border-slate-100 bg-gradient-to-r from-[#e65c4f]/5 to-transparent">
+      <div class="w-7 h-7 rounded-lg bg-[#e65c4f] flex items-center justify-center flex-shrink-0">
+        <i class="fas fa-receipt text-white text-xs"></i>
+      </div>
+      <div>
+        <div class="text-[#e65c4f] font-bold text-sm leading-tight">Monthly Spending</div>
+        <div class="text-slate-400 text-xs">Total outgoings per month</div>
+      </div>
+    </div>
+    <div class="flex-1 min-h-0 p-4"><canvas id="chart2"></canvas></div>
   </div>
-  <div class="bg-white rounded-2xl shadow-lg border border-[#89c2d9] p-6 h-64 flex flex-col">
-    <div class="text-[#01497c] font-semibold text-sm mb-2">Spending by Category</div>
-    <div class="flex-1 min-h-0"><svg id="chart3" width="100%" height="100%"></svg></div>
+
+  <!-- Spending by Category -->
+  <div class="bg-white rounded-2xl shadow-lg border border-slate-100 flex flex-col overflow-hidden h-80">
+    <div class="flex items-center gap-3 px-5 py-3 border-b border-slate-100 bg-gradient-to-r from-[#2a9d8f]/5 to-transparent">
+      <div class="w-7 h-7 rounded-lg bg-[#2a9d8f] flex items-center justify-center flex-shrink-0">
+        <i class="fas fa-th-large text-white text-xs"></i>
+      </div>
+      <div>
+        <div class="text-[#2a9d8f] font-bold text-sm leading-tight">Spending by Category</div>
+        <div class="text-slate-400 text-xs">Breakdown across expense types</div>
+      </div>
+    </div>
+    <div class="flex-1 min-h-0 p-3"><svg id="chart3" width="100%" height="100%"></svg></div>
   </div>
-  <div class="bg-white rounded-2xl shadow-lg border border-[#89c2d9] p-6 h-64 flex flex-col">
-    <div class="text-[#01497c] font-semibold text-sm mb-2">Budget Flow</div>
-    <div class="flex-1 min-h-0"><svg id="chart4" width="100%" height="100%"></svg></div>
+
+  <!-- Budget Flow -->
+  <div class="bg-white rounded-2xl shadow-lg border border-slate-100 flex flex-col overflow-hidden h-80">
+    <div class="flex items-center gap-3 px-5 py-3 border-b border-slate-100 bg-gradient-to-r from-[#8338ec]/5 to-transparent">
+      <div class="w-7 h-7 rounded-lg bg-[#8338ec] flex items-center justify-center flex-shrink-0">
+        <i class="fas fa-project-diagram text-white text-xs"></i>
+      </div>
+      <div>
+        <div class="text-[#8338ec] font-bold text-sm leading-tight">Budget Flow</div>
+        <div class="text-slate-400 text-xs">Where your money goes</div>
+      </div>
+    </div>
+    <div class="flex-1 min-h-0 p-3"><svg id="chart4" width="100%" height="100%"></svg></div>
   </div>
+
 </div>
 {% endblock %}
 
