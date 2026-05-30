@@ -1,0 +1,229 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+  <div class="bg-white rounded-2xl shadow-lg border border-[#89c2d9] p-6 h-64">
+    <canvas id="chart1"></canvas>
+  </div>
+  <div class="bg-white rounded-2xl shadow-lg border border-[#89c2d9] p-6 h-64">
+    <canvas id="chart2"></canvas>
+  </div>
+  <div class="bg-white rounded-2xl shadow-lg border border-[#89c2d9] p-6 h-64">
+    <svg id="chart3" width="100%" height="100%"></svg>
+  </div>
+  <div class="bg-white rounded-2xl shadow-lg border border-[#89c2d9] p-6 h-64">
+    <svg id="chart4" width="100%" height="100%"></svg>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/d3-sankey@0.12.3/dist/d3-sankey.min.js"></script>
+<script>
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun',
+                'Jul','Aug','Sep','Oct','Nov','Dec'];
+
+function token()      { return localStorage.getItem('token'); }
+function apiHeaders() {
+  return { 'Content-Type':'application/json', 'Authorization':`Bearer ${token()}` };
+}
+
+async function loadRolloverChart() {
+  try {
+    const res = await fetch('/api/rollover-over-time', { headers: apiHeaders() });
+    if (!res.ok) { if (res.status === 401) { location.href = '/login'; return; }
+                   throw new Error(`HTTP ${res.status}`); }
+    const data = await res.json();
+    new Chart(document.getElementById('chart1'), {
+      type: 'line',
+      data: {
+        labels: data.map(d => `${MONTHS[d.month - 1]} ${d.year}`),
+        datasets: [{
+          label: 'Cumulative rollover',
+          data: data.map(d => d.cumulative_balance),
+          borderColor: '#01497c',
+          backgroundColor: 'rgba(1,73,124,0.1)',
+          fill: true,
+          tension: 0.3,
+          pointRadius: 3,
+          pointHoverRadius: 5,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false }
+        },
+        scales: {
+          y: { beginAtZero: true, ticks: { callback: v => '£' + v.toLocaleString() } }
+        }
+      }
+    });
+  } catch(err) { console.error('Rollover chart error:', err); }
+}
+
+async function loadExpensesChart() {
+  try {
+    const res = await fetch('/api/expenses-over-time', { headers: apiHeaders() });
+    if (!res.ok) { if (res.status === 401) { location.href = '/login'; return; }
+                   throw new Error(`HTTP ${res.status}`); }
+    const data = await res.json();
+    new Chart(document.getElementById('chart2'), {
+      type: 'line',
+      data: {
+        labels: data.map(d => `${MONTHS[d.month - 1]} ${d.year}`),
+        datasets: [{
+          label: 'Total spent',
+          data: data.map(d => d.total_spent),
+          borderColor: '#e65c4f',
+          backgroundColor: 'rgba(230,92,79,0.1)',
+          fill: true,
+          tension: 0.3,
+          pointRadius: 3,
+          pointHoverRadius: 5,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false }
+        },
+        scales: {
+          y: { beginAtZero: true, ticks: { callback: v => '£' + v.toLocaleString() } }
+        }
+      }
+    });
+  } catch(err) { console.error('Expenses chart error:', err); }
+}
+
+async function loadCategoryTreemap() {
+  try {
+    const res = await fetch('/api/category-spending', { headers: apiHeaders() });
+    if (!res.ok) { if (res.status === 401) { location.href = '/login'; return; }
+                   throw new Error(`HTTP ${res.status}`); }
+    const data = await res.json();
+    const el = document.getElementById('chart3');
+    const width = el.parentElement.clientWidth;
+    const height = el.parentElement.clientHeight;
+    el.setAttribute('viewBox', `0 0 ${width} ${height}`);
+
+    const root = d3.hierarchy(data).sum(d => d.value);
+    d3.treemap().size([width, height]).paddingOuter(4).paddingInner(2)(root);
+
+    const color = d3.scaleOrdinal(d3.schemeTableau10);
+
+    const g = d3.select(el).append('g');
+
+    const cell = g.selectAll('g')
+      .data(root.leaves())
+      .join('g')
+      .attr('transform', d => `translate(${d.x0},${d.y0})`);
+
+    cell.append('rect')
+      .attr('width',  d => Math.max(0, d.x1 - d.x0))
+      .attr('height', d => Math.max(0, d.y1 - d.y0))
+      .attr('fill', d => color(d.parent.data.name))
+      .attr('fill-opacity', 0.85)
+      .attr('rx', 3);
+
+    cell.append('text')
+      .attr('x', 4)
+      .attr('y', 14)
+      .attr('font-size', '11px')
+      .attr('font-weight', '600')
+      .attr('fill', '#fff')
+      .text(d => d.data.name);
+
+    cell.append('text')
+      .attr('x', 4)
+      .attr('y', 28)
+      .attr('font-size', '10px')
+      .attr('fill', 'rgba(255,255,255,0.85)')
+      .text(d => '£' + d.data.value.toLocaleString());
+  } catch(err) { console.error('Treemap error:', err); }
+}
+
+async function loadSankeyChart() {
+  try {
+    const res = await fetch('/api/sankey', { headers: apiHeaders() });
+    if (!res.ok) { if (res.status === 401) { location.href = '/login'; return; }
+                   throw new Error(`HTTP ${res.status}`); }
+    const data = await res.json();
+    if (!data.nodes.length) return;
+
+    const el = document.getElementById('chart4');
+    const rect = el.parentElement.getBoundingClientRect();
+    const width = rect.width;
+    const height = rect.height;
+    el.setAttribute('viewBox', `0 0 ${width} ${height}`);
+    el.innerHTML = '';
+
+    const sankey = d3.sankey()
+      .nodeWidth(20)
+      .nodePadding(8)
+      .extent([[10, 10], [width - 10, height - 10]]);
+
+    const {nodes, links} = sankey({
+      nodes: data.nodes.map(d => ({...d})),
+      links: data.links.map(d => ({source: d.source, target: d.target, value: d.value})),
+    });
+
+    const color = d3.scaleOrdinal()
+      .domain(data.nodes.map((_, i) => i))
+      .range(['#01497c', '#e65c4f', '#2a9d8f', ...d3.schemeTableau10]);
+
+    const svg = d3.select(el);
+
+    svg.append('g')
+      .selectAll('path')
+      .data(links)
+      .join('path')
+      .attr('d', d3.sankeyLinkHorizontal())
+      .attr('fill', 'none')
+      .attr('stroke', d => color(d.source.index))
+      .attr('stroke-opacity', 0.35)
+      .attr('stroke-width', d => Math.max(1, d.width));
+
+    const node = svg.append('g')
+      .selectAll('g')
+      .data(nodes)
+      .join('g');
+
+    node.append('rect')
+      .attr('x', d => d.x0)
+      .attr('y', d => d.y0)
+      .attr('width', d => d.x1 - d.x0)
+      .attr('height', d => d.y1 - d.y0)
+      .attr('fill', d => color(d.index))
+      .attr('rx', 3);
+
+    node.append('text')
+      .attr('x', d => (d.x0 + d.x1) / 2)
+      .attr('y', d => (d.y0 + d.y1) / 2 - 5)
+      .attr('text-anchor', 'middle')
+      .attr('font-size', '10px')
+      .attr('font-weight', '700')
+      .attr('fill', '#fff')
+      .text(d => d.data.name);
+
+    node.append('text')
+      .attr('x', d => (d.x0 + d.x1) / 2)
+      .attr('y', d => (d.y0 + d.y1) / 2 + 10)
+      .attr('text-anchor', 'middle')
+      .attr('font-size', '9px')
+      .attr('font-weight', '400')
+      .attr('fill', 'rgba(255,255,255,0.85)')
+      .text(d => '£' + (d.value || 0).toLocaleString());
+  } catch(err) { console.error('Sankey error:', err); }
+}
+
+loadRolloverChart();
+loadExpensesChart();
+loadCategoryTreemap();
+loadSankeyChart();
+</script>
+{% endblock %}

@@ -194,3 +194,141 @@ def get_rollover() -> List[dict]:
     rows = [dict(row) for row in cur.fetchall()]
     conn.close()
     return rows
+
+
+def get_avg_spent_by_category() -> dict:
+    """
+    Fetch average spent per bucket grouped by category,
+    structured as a hierarchy for D3 treemap.
+    """
+    conn = get_connection()
+    cur  = conn.cursor()
+
+    cur.execute("""
+        SELECT
+            b.category,
+            b.category_sort,
+            b.display_name,
+            b.sort_order,
+            AVG(COALESCE(me.spent, 0)) AS avg_spent
+        FROM buckets b
+        LEFT JOIN monthly_entries me ON me.bucket_id = b.id
+        GROUP BY b.id, b.category, b.category_sort, b.display_name, b.sort_order
+        ORDER BY b.category_sort, b.sort_order
+    """)
+
+    rows = cur.fetchall()
+    conn.close()
+
+    categories: dict = {}
+    for row in rows:
+        cat = row["category"]
+        if cat not in categories:
+            categories[cat] = {"name": cat, "children": []}
+        categories[cat]["children"].append({
+            "name":  row["display_name"],
+            "value": round(row["avg_spent"], 2),
+        })
+
+    children = sorted(categories.values(),
+                      key=lambda c: -max(ch["value"] for ch in c["children"]))
+
+    return {"name": "root", "children": children}
+
+
+def get_expenses_over_time() -> List[dict]:
+    """
+    Fetch total spent per month over time.
+    Returns one row per month with the sum of spent amounts.
+    """
+    conn = get_connection()
+    cur  = conn.cursor()
+
+    cur.execute("""
+        SELECT
+            year,
+            month,
+            SUM(COALESCE(spent, 0)) AS total_spent
+        FROM monthly_entries
+        GROUP BY year, month
+        ORDER BY year, month
+    """)
+
+    rows = [dict(row) for row in cur.fetchall()]
+    conn.close()
+    return rows
+
+
+def get_sankey_data() -> dict:
+    """
+    Fetch data for a sankey diagram showing the flow from total allocated
+    through total spent (per category) and rollover.
+    """
+    conn = get_connection()
+    cur  = conn.cursor()
+
+    cur.execute("""
+        SELECT
+            SUM(allocated)            AS total_allocated,
+            SUM(COALESCE(spent, 0))   AS total_spent
+        FROM monthly_entries
+    """)
+    totals   = cur.fetchone()
+    total_allocated = round(totals["total_allocated"] or 0, 2)
+    total_spent     = round(totals["total_spent"] or 0, 2)
+    rollover        = round(total_allocated - total_spent, 2)
+
+    cur.execute("""
+        SELECT
+            b.category,
+            b.category_sort,
+            SUM(COALESCE(me.spent, 0)) AS total_spent
+        FROM monthly_entries me
+        JOIN buckets b ON b.id = me.bucket_id
+        GROUP BY b.category, b.category_sort
+        ORDER BY b.category_sort
+    """)
+    cat_rows = cur.fetchall()
+    conn.close()
+
+    nodes = [
+        {"name": "Total allocated"},
+        {"name": "Total spent"},
+        {"name": "Rollover"},
+    ]
+
+    links = [
+        {"source": 0, "target": 1, "value": total_spent},
+        {"source": 0, "target": 2, "value": rollover},
+    ]
+
+    for row in cat_rows:
+        idx = len(nodes)
+        nodes.append({"name": row["category"]})
+        links.append({"source": 1, "target": idx, "value": round(row["total_spent"], 2)})
+
+    return {"nodes": nodes, "links": links}
+
+
+def get_rollover_over_time() -> List[dict]:
+    """
+    Fetch cumulative rollover balance over time.
+    Returns one row per month with the running total of (allocated - spent).
+    """
+    conn = get_connection()
+    cur  = conn.cursor()
+
+    cur.execute("""
+        SELECT
+            year,
+            month,
+            SUM(SUM(allocated - COALESCE(spent, 0)))
+                OVER (ORDER BY year, month) AS cumulative_balance
+        FROM monthly_entries
+        GROUP BY year, month
+        ORDER BY year, month
+    """)
+
+    rows = [dict(row) for row in cur.fetchall()]
+    conn.close()
+    return rows

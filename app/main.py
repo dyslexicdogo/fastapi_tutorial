@@ -43,6 +43,11 @@ async def entry_page(request: Request):
 async def view_page(request: Request):
     return templates.TemplateResponse(request, "view.html", {"request": request, "title": "Budget View"})
 
+
+@app.get("/charts")
+async def charts_page(request: Request):
+    return templates.TemplateResponse(request, "charts.html", {"request": request, "title": "Charts"})
+
 @app.get("/logout")
 async def logout():
     # JWT lives in the browser's localStorage — the client clears it.

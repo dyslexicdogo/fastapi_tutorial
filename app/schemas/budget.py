@@ -53,3 +53,47 @@ class RolloverRow(BaseModel):
     bucket_id:          int
     display_name:       str
     cumulative_balance: float
+
+
+class BucketAvgSpent(BaseModel):
+    name:  str
+    value: float
+
+
+class CategoryAvgSpent(BaseModel):
+    name:     str
+    children: List[BucketAvgSpent]
+
+
+class CategorySpendingTree(BaseModel):
+    name:     str
+    children: List[CategoryAvgSpent]
+
+
+class ExpensesTimePoint(BaseModel):
+    """Total expenses at a given month."""
+    year:        int
+    month:       int
+    total_spent: float
+
+
+class SankeyNode(BaseModel):
+    name: str
+
+
+class SankeyLink(BaseModel):
+    source: int
+    target: int
+    value: float
+
+
+class SankeyData(BaseModel):
+    nodes: List[SankeyNode]
+    links: List[SankeyLink]
+
+
+class RolloverTimePoint(BaseModel):
+    """Cumulative rollover balance at a given month."""
+    year:              int
+    month:             int
+    cumulative_balance: float
