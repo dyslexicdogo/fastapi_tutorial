@@ -2,70 +2,29 @@
 
 {% block content %}
 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-  <!-- Cumulative Rollover -->
-  <div class="bg-white rounded-2xl shadow-lg border border-slate-100 flex flex-col overflow-hidden h-80">
-    <div class="flex items-center gap-3 px-5 py-3 border-b border-slate-100 bg-gradient-to-r from-[#01497c]/5 to-transparent">
-      <div class="w-7 h-7 rounded-lg bg-[#01497c] flex items-center justify-center flex-shrink-0">
-        <i class="fas fa-piggy-bank text-white text-xs"></i>
-      </div>
-      <div>
-        <div class="text-[#01497c] font-bold text-sm leading-tight">Cumulative Rollover</div>
-        <div class="text-slate-400 text-xs">Running balance over time</div>
-      </div>
-    </div>
-    <div class="flex-1 min-h-0 p-4"><canvas id="chart1"></canvas></div>
+  <div class="bg-white rounded-2xl shadow-lg border border-[#89c2d9] p-6 h-80 flex flex-col">
+    <div class="text-[#01497c] font-semibold text-sm mb-2">Cumulative Rollover</div>
+    <div class="flex-1 min-h-0"><canvas id="chart1"></canvas></div>
   </div>
-
-  <!-- Monthly Spending -->
-  <div class="bg-white rounded-2xl shadow-lg border border-slate-100 flex flex-col overflow-hidden h-80">
-    <div class="flex items-center gap-3 px-5 py-3 border-b border-slate-100 bg-gradient-to-r from-[#e65c4f]/5 to-transparent">
-      <div class="w-7 h-7 rounded-lg bg-[#e65c4f] flex items-center justify-center flex-shrink-0">
-        <i class="fas fa-receipt text-white text-xs"></i>
-      </div>
-      <div>
-        <div class="text-[#e65c4f] font-bold text-sm leading-tight">Monthly Spending</div>
-        <div class="text-slate-400 text-xs">Total outgoings per month</div>
-      </div>
-    </div>
-    <div class="flex-1 min-h-0 p-4"><canvas id="chart2"></canvas></div>
+  <div class="bg-white rounded-2xl shadow-lg border border-[#89c2d9] p-6 h-80 flex flex-col">
+    <div class="text-[#01497c] font-semibold text-sm mb-2">Monthly Spending</div>
+    <div class="flex-1 min-h-0"><canvas id="chart2"></canvas></div>
   </div>
-
-  <!-- Spending by Category -->
-  <div class="bg-white rounded-2xl shadow-lg border border-slate-100 flex flex-col overflow-hidden h-80">
-    <div class="flex items-center gap-3 px-5 py-3 border-b border-slate-100 bg-gradient-to-r from-[#2a9d8f]/5 to-transparent">
-      <div class="w-7 h-7 rounded-lg bg-[#2a9d8f] flex items-center justify-center flex-shrink-0">
-        <i class="fas fa-th-large text-white text-xs"></i>
-      </div>
-      <div>
-        <div class="text-[#2a9d8f] font-bold text-sm leading-tight">Spending by Category</div>
-        <div class="text-slate-400 text-xs">Breakdown across expense types</div>
-      </div>
-    </div>
-    <div class="flex-1 min-h-0 p-3"><svg id="chart3" width="100%" height="100%"></svg></div>
+  <div class="bg-white rounded-2xl shadow-lg border border-[#89c2d9] p-6 h-80 flex flex-col">
+    <div class="text-[#01497c] font-semibold text-sm mb-2">Spending by Category</div>
+    <div class="flex-1 min-h-0"><svg id="chart3" width="100%" height="100%"></svg></div>
   </div>
-
-  <!-- Budget Flow -->
-  <div class="bg-white rounded-2xl shadow-lg border border-slate-100 flex flex-col overflow-hidden h-80">
-    <div class="flex items-center gap-3 px-5 py-3 border-b border-slate-100 bg-gradient-to-r from-[#8338ec]/5 to-transparent">
-      <div class="w-7 h-7 rounded-lg bg-[#8338ec] flex items-center justify-center flex-shrink-0">
-        <i class="fas fa-project-diagram text-white text-xs"></i>
-      </div>
-      <div>
-        <div class="text-[#8338ec] font-bold text-sm leading-tight">Budget Flow</div>
-        <div class="text-slate-400 text-xs">Where your money goes</div>
-      </div>
-    </div>
-    <div class="flex-1 min-h-0 p-3"><svg id="chart4" width="100%" height="100%"></svg></div>
+  <div class="bg-white rounded-2xl shadow-lg border border-[#89c2d9] p-6 h-80 flex flex-col">
+    <div class="text-[#01497c] font-semibold text-sm mb-2">Budget Flow</div>
+    <div class="flex-1 min-h-0" id="chart4"></div>
   </div>
-
 </div>
 {% endblock %}
 
 {% block extra_scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://d3js.org/d3.v7.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/d3-sankey@0.12.3/dist/d3-sankey.min.js"></script>
+<script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
 <script>
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun',
                 'Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -99,12 +58,8 @@ async function loadRolloverChart() {
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false }
-        },
-        scales: {
-          y: { beginAtZero: true, ticks: { callback: v => '£' + v.toLocaleString() } }
-        }
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true, ticks: { callback: v => '£' + v.toLocaleString() } } }
       }
     });
   } catch(err) { console.error('Rollover chart error:', err); }
@@ -134,12 +89,8 @@ async function loadExpensesChart() {
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false }
-        },
-        scales: {
-          y: { beginAtZero: true, ticks: { callback: v => '£' + v.toLocaleString() } }
-        }
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true, ticks: { callback: v => '£' + v.toLocaleString() } } }
       }
     });
   } catch(err) { console.error('Expenses chart error:', err); }
@@ -160,12 +111,8 @@ async function loadCategoryTreemap() {
     d3.treemap().size([width, height]).paddingOuter(4).paddingInner(2)(root);
 
     const color = d3.scaleOrdinal(d3.schemeTableau10);
-
     const g = d3.select(el).append('g');
-
-    const cell = g.selectAll('g')
-      .data(root.leaves())
-      .join('g')
+    const cell = g.selectAll('g').data(root.leaves()).join('g')
       .attr('transform', d => `translate(${d.x0},${d.y0})`);
 
     cell.append('rect')
@@ -175,19 +122,12 @@ async function loadCategoryTreemap() {
       .attr('fill-opacity', 0.85)
       .attr('rx', 3);
 
-    cell.append('text')
-      .attr('x', 4)
-      .attr('y', 14)
-      .attr('font-size', '11px')
-      .attr('font-weight', '600')
-      .attr('fill', '#fff')
+    cell.append('text').attr('x', 4).attr('y', 14)
+      .attr('font-size', '11px').attr('font-weight', '600').attr('fill', '#fff')
       .text(d => d.data.name);
 
-    cell.append('text')
-      .attr('x', 4)
-      .attr('y', 28)
-      .attr('font-size', '10px')
-      .attr('fill', 'rgba(255,255,255,0.85)')
+    cell.append('text').attr('x', 4).attr('y', 28)
+      .attr('font-size', '10px').attr('fill', 'rgba(255,255,255,0.85)')
       .text(d => '£' + d.data.value.toLocaleString());
   } catch(err) { console.error('Treemap error:', err); }
 }
@@ -197,72 +137,79 @@ async function loadSankeyChart() {
     const res = await fetch('/api/sankey', { headers: apiHeaders() });
     if (!res.ok) { if (res.status === 401) { location.href = '/login'; return; }
                    throw new Error(`HTTP ${res.status}`); }
-    const data = await res.json();
-    if (!data.nodes.length) return;
+    const raw = await res.json();
+    if (!raw.nodes || !raw.nodes.length) return;
 
-    const el = document.getElementById('chart4');
-    const rect = el.parentElement.getBoundingClientRect();
-    const width = rect.width;
-    const height = rect.height;
-    el.setAttribute('viewBox', `0 0 ${width} ${height}`);
-    el.innerHTML = '';
+    // ── Reorder nodes so rollover is always last ─────────────────────────
+    // Plotly's auto-layout places last sink nodes at the bottom of their
+    // column, so moving rollover to the end is all we need — no x/y hacks.
+    const ROLLOVER_KW = ['rollover', 'roll over', 'roll-over', 'balance'];
+    const isRollover  = name => ROLLOVER_KW.some(k => (name||'').toLowerCase().includes(k));
 
-    const sankey = d3.sankey()
-      .nodeWidth(20)
-      .nodePadding(8)
-      .extent([[10, 10], [width - 10, height - 10]]);
+    // Build a new ordering: non-rollover nodes first, rollover nodes last
+    const order = [
+      ...raw.nodes.map((_,i) => i).filter(i => !isRollover(raw.nodes[i].name)),
+      ...raw.nodes.map((_,i) => i).filter(i =>  isRollover(raw.nodes[i].name)),
+    ];
 
-    const {nodes, links} = sankey({
-      nodes: data.nodes.map(d => ({...d})),
-      links: data.links.map(d => ({source: d.source, target: d.target, value: d.value})),
+    // Create a remapping from old index → new index
+    const remap = {};
+    order.forEach((oldIdx, newIdx) => { remap[oldIdx] = newIdx; });
+
+    const nodes = order.map(i => raw.nodes[i]);
+    const links = raw.links.map(l => ({
+      source: remap[l.source],
+      target: remap[l.target],
+      value:  l.value,
+    }));
+
+    // ── Colours ──────────────────────────────────────────────────────────
+    const PALETTE        = ['#01497c','#e65c4f','#2a9d8f','#8338ec','#f4a261',
+                            '#457b9d','#6d6875','#b5838d','#3a86ff','#06d6a0'];
+    const ROLLOVER_COLOR = '#94a3b8'; // slate — visually distinct
+
+    let pi = 0;
+    const nodeColors = nodes.map(n =>
+      isRollover(n.name) ? ROLLOVER_COLOR : PALETTE[pi++ % PALETTE.length]
+    );
+
+    const linkColors = links.map(l => {
+      const h = nodeColors[l.source];
+      const r = parseInt(h.slice(1,3),16);
+      const g = parseInt(h.slice(3,5),16);
+      const b = parseInt(h.slice(5,7),16);
+      return `rgba(${r},${g},${b},0.35)`;
     });
 
-    const color = d3.scaleOrdinal()
-      .domain(data.nodes.map((_, i) => i))
-      .range(['#01497c', '#e65c4f', '#2a9d8f', ...d3.schemeTableau10]);
-
-    const svg = d3.select(el);
-
-    svg.append('g')
-      .selectAll('path')
-      .data(links)
-      .join('path')
-      .attr('d', d3.sankeyLinkHorizontal())
-      .attr('fill', 'none')
-      .attr('stroke', d => color(d.source.index))
-      .attr('stroke-opacity', 0.35)
-      .attr('stroke-width', d => Math.max(1, d.width));
-
-    const node = svg.append('g')
-      .selectAll('g')
-      .data(nodes)
-      .join('g');
-
-    node.append('rect')
-      .attr('x', d => d.x0)
-      .attr('y', d => d.y0)
-      .attr('width', d => d.x1 - d.x0)
-      .attr('height', d => d.y1 - d.y0)
-      .attr('fill', d => color(d.index))
-      .attr('rx', 3);
-
-    node.append('text')
-      .attr('x', d => (d.x0 + d.x1) / 2)
-      .attr('y', d => (d.y0 + d.y1) / 2 - 5)
-      .attr('text-anchor', 'middle')
-      .attr('font-size', '10px')
-      .attr('font-weight', '700')
-      .attr('fill', '#fff')
-      .text(d => d.data.name);
-
-    node.append('text')
-      .attr('x', d => (d.x0 + d.x1) / 2)
-      .attr('y', d => (d.y0 + d.y1) / 2 + 10)
-      .attr('text-anchor', 'middle')
-      .attr('font-size', '9px')
-      .attr('font-weight', '400')
-      .attr('fill', 'rgba(255,255,255,0.85)')
-      .text(d => '£' + (d.value || 0).toLocaleString());
+    // ── Plot — let Plotly handle all layout automatically ─────────────────
+    Plotly.newPlot(document.getElementById('chart4'), [{
+      type: 'sankey',
+      orientation: 'h',
+      arrangement: 'snap',   // free auto-layout, no fixed coords
+      node: {
+        pad:       20,
+        thickness: 20,
+        line: { color: 'rgba(0,0,0,0.08)', width: 0.5 },
+        label: nodes.map(n => n.name),
+        color: nodeColors,
+        hovertemplate: '<b>%{label}</b><br>£%{value:,.0f}<extra></extra>',
+      },
+      link: {
+        source: links.map(l => l.source),
+        target: links.map(l => l.target),
+        value:  links.map(l => l.value),
+        color:  linkColors,
+        hovertemplate: '%{source.label} → %{target.label}<br>£%{value:,.0f}<extra></extra>',
+      }
+    }], {
+      paper_bgcolor: 'transparent',
+      plot_bgcolor:  'transparent',
+      font: { family: 'Inter, system-ui, sans-serif', size: 11, color: '#334155' },
+      margin: { l: 0, r: 0, t: 4, b: 4 },
+    }, {
+      responsive:     true,
+      displayModeBar: false,
+    });
   } catch(err) { console.error('Sankey error:', err); }
 }
 
