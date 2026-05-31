@@ -38,6 +38,16 @@
   .tbl-scroll::-webkit-scrollbar { height: 6px; }
   .tbl-scroll::-webkit-scrollbar-track { background: #a9d6e5; }
   .tbl-scroll::-webkit-scrollbar-thumb { background: #89c2d9; border-radius: 3px; }
+
+  /* Mobile: disable sticky cells to prevent infinite height bug */
+  @media (max-width: 767px) {
+    #viewTable th,
+    #viewTable td {
+      position: static !important;
+      left: auto !important;
+      z-index: auto !important;
+    }
+  }
 </style>
 {% endblock %}
 
