@@ -86,6 +86,25 @@ def get_previous_month_allocated(year: int, month: int) -> List[dict]:
     return rows
 
 
+def delete_month_entry(year: int, month: int) -> int:
+    """
+    Delete all entries for a given year/month.
+    Returns the number of rows deleted.
+    """
+    conn = get_connection()
+    cur  = conn.cursor()
+
+    cur.execute("""
+        DELETE FROM monthly_entries
+        WHERE year = ? AND month = ?
+    """, (year, month))
+
+    deleted = cur.rowcount
+    conn.commit()
+    conn.close()
+    return deleted
+
+
 # ── View CRUD ──────────────────────────────────────────────────────────────
 
 def get_view_data(offset: int = 0) -> dict:

@@ -34,7 +34,7 @@
 {% endblock %}
 
 {% block content %}
-<div class="max-w-2xl mx-auto">
+<div class="max-w-2xl mx-auto relative">
   <div class="bg-white rounded-2xl shadow-lg overflow-hidden border border-[#89c2d9]">
 
     <!-- ── Controls bar ── -->
@@ -149,6 +149,14 @@
       </div>
 
     </form>
+
+    <!-- ── Delete button ── -->
+    <button id="deleteBtn"
+            class="hidden absolute bottom-4 right-4 px-4 py-2 bg-red-600 hover:bg-red-700
+                   active:bg-red-800 text-white font-semibold rounded-lg text-sm
+                   transition shadow-lg flex items-center gap-2">
+      <i class="fas fa-trash-alt"></i> Delete month
+    </button>
   </div><!-- end card -->
 </div><!-- end max-w -->
 {% endblock %}
@@ -226,6 +234,7 @@ async function loadEntries() {
     renderEntries(await res.json());
     loading.classList.add('hidden');
     form.classList.remove('hidden');
+    deleteBtn.classList.remove('hidden');
   } catch(err) {
     loading.classList.add('hidden');
     showError(err.message);
@@ -330,6 +339,23 @@ autofillBtn.addEventListener('click', async () => {
 
 yearSel.addEventListener('change', loadEntries);
 monthSel.addEventListener('change', loadEntries);
+
+// ── Delete month ─────────────────────────────────────────────────────────
+const deleteBtn = document.getElementById('deleteBtn');
+
+deleteBtn.addEventListener('click', async () => {
+  if (!confirm('Delete all entries for this month? This cannot be undone.')) return;
+  hideError();
+  try {
+    const res = await fetch(
+      `/api/entry?year=${yearSel.value}&month=${monthSel.value}`,
+      { method: 'DELETE', headers: apiHeaders() }
+    );
+    if (!res.ok) { if (res.status===401) { location.href='/login'; return; }
+                   throw new Error(`Delete failed (${res.status})`); }
+    loadEntries();
+  } catch(err) { showError(err.message); }
+});
 
 // Pre-select from URL params if present
 const p = new URLSearchParams(location.search);

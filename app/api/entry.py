@@ -11,6 +11,7 @@ from app.crud.budget import (
     get_entries_for_month,
     save_entries,
     get_previous_month_allocated,
+    delete_month_entry,
 )
 
 router = APIRouter()
@@ -51,3 +52,18 @@ async def entry_autofill(
     user: str = Depends(get_current_user),     # ← protected
 ):
     return get_previous_month_allocated(body.year, body.month)
+
+
+@router.delete("/api/entry")
+async def entry_delete(
+    year:  int,
+    month: int,
+    user:  str = Depends(get_current_user),
+):
+    if not (1 <= month <= 12):
+        raise HTTPException(status_code=400, detail="month must be 1–12")
+    if year < 2000:
+        raise HTTPException(status_code=400, detail="invalid year")
+
+    deleted = delete_month_entry(year, month)
+    return {"deleted": deleted}
